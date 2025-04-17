@@ -3,6 +3,7 @@ import base64
 from ai_feedback.prompts import AUDIO_FEEDBACK_PROMPT
 from ai_feedback.config import settings
 from ai_feedback.utils import extract_text_from_pdf, read_audio
+from loguru import logger
 
 
 client = OpenAI(
@@ -39,12 +40,15 @@ def call_ai_api(prompt: str, script: str, audio: bytes) -> str:
 
     if feedback is None:
         raise RuntimeError("External API call failed: received None")
+
+    logger.info(f"Generated feedback: {feedback}")
     return feedback
 
 
 def get_feedback(audio_filename: str, pdf_filename: str) -> str:
     prompt_input = AUDIO_FEEDBACK_PROMPT
     script_text = extract_text_from_pdf(pdf_filename)
+    logger.info(f"Script text: {script_text}")
     audio = read_audio(audio_filename)
 
     return call_ai_api(prompt_input, script_text, audio)
