@@ -24,7 +24,7 @@ async def generate_feedback(video: UploadFile = File(...), pdf: UploadFile = Fil
 
         audio_filename = convert_video_to_audio(video_filename)
 
-        feedback = get_feedback(audio_filename, pdf_filename)
+        feedback = await get_feedback(audio_filename, pdf_filename)
         return FeedbackResponse(feedback=feedback)
 
     except subprocess.CalledProcessError as e:

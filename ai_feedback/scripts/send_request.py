@@ -2,6 +2,7 @@ import requests
 import subprocess
 
 url = "https://my-fastapi-service-140249299005.us-central1.run.app/feedback"
+# url = "http://0.0.0.0:8080/feedback"
 
 bearer_token = (
     subprocess.check_output(["gcloud", "auth", "print-identity-token"]).decode().strip()
@@ -20,5 +21,5 @@ files = {
 
 response = requests.post(url, files=files, headers=headers)
 # print(response.status_code)
-# print(response.json()["feedback"])
-print(response.text)
+print(response.json()["feedback"])
+# print(response.text)
