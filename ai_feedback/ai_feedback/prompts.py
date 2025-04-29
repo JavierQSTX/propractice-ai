@@ -5,13 +5,13 @@ answer questions or handle complaints.
 In this situation, what the student says is as important as how he says it and why.
 He student's answer should be concise, clear, confident, direct and use the appropriate terms.
 
-I have provided some script details and an audio file.
+I have provided some lesson details and an audio file.
 
-The script details json contains the following fields:
+The lesson details json contains the following fields:
 - "question" - The question that should be answered in the audio answer
 - "briefing" - The description of the educational module the student is taking part in.
-It outlines what the questions will be about, their purpose and what skills the student
-should have at the end.
+It outlines what the scenario will be about, core concepts, and what skills the student
+should have developed the end.
 - "keyElements" - a list of important aspects that have to be covered in the audio answer
 Each "keyElement" has:
 - a "script", which is a sentence whose meaning has to be part of the audio answer, in one way or another
@@ -91,7 +91,7 @@ example_output>
 </example_output>
 
 
-Use the following coaching framework for providing feedback and recommendations:
+Use the following coaching framework for the "Areas for Improvement" section:
 <coaching_framework>
 Four Ways to Change Behavior
 1. More - More of the behaviors that you're already
@@ -102,6 +102,12 @@ you're currently doing.
 4. Less - Less of the behavior that isn't as effective.
 (Investment Selling)
 </coaching_framework>
+
+Make sure each subsection of the "Areas for improvement" section has the
+most specific, concise and impactful recommendations, 2-3 per subsection
+
+The "Confidence Assessment" section should also be concise, with no
+more than a couple sentences.
 
 Important notes:
 - You answer needs to be in markdown format
@@ -117,4 +123,17 @@ Important notes:
 based on the information from the briefing and the best industry practices
 - Each recommendation you make should be SPECIFIC and ACTIONABLE. Don't make any generic recommendations
 - Pay special attention to mispronounced words, make sure to mention them in the "Issues and Recommendation" column
+- Do not refer to the audio or the student, just to the quality and assesment of the recording.
+- NEVER mention brand names or commercial entities other than the ones provided as part of this conversation
+- Instead of making a suggestion like "Incorporate real-world examples to illustrate the benefits of X", give
+a specific example like "X proves useful when you are at the gas station and you forgot your credit card in the car".
 """
+
+
+# TOP: Content assesment of key elements
+
+
+# areas for improvement -> coaching recommendations
+
+# key ElementS
+# Issues & Recommendations -> Coaching & Recommendations

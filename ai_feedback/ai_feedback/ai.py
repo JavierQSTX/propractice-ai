@@ -48,7 +48,7 @@ async def call_ai_api(prompt: str, script_details: ScriptDetails, audio: bytes) 
 
 async def get_feedback(audio_filename: str, script_details: ScriptDetails) -> str:
     prompt_input = AUDIO_FEEDBACK_PROMPT
-    logger.info(f"Script text: {script_details}")
+    logger.info(f"Lesson details: {script_details}")
     audio = read_audio(audio_filename)
 
     return await call_ai_api(prompt_input, script_details, audio)
