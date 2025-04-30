@@ -17,6 +17,7 @@ openai = "^1.74.0"
 loguru = "^0.7.3"
 langfuse = "^2.60.3"
 python-jose = {extras = ["cryptography"], version = "^3.4.0"}
+instructor = "^1.7.9"
 
 
 [tool.poetry.group.dev.dependencies]

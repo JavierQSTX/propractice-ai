@@ -1,13 +1,8 @@
-import PyPDF2
 import subprocess
+from uuid import uuid4
+from langfuse import Langfuse
 
-
-def extract_text_from_pdf(pdf_filename: str) -> str:
-    reader = PyPDF2.PdfReader(pdf_filename)
-    text = ""
-    for page in reader.pages:
-        text += page.extract_text() + "\n"
-    return text
+lf = Langfuse()
 
 
 def read_audio(audio_filename: str) -> bytes:
@@ -22,3 +17,11 @@ def convert_video_to_audio(video_filename: str) -> str:
         check=True,
     )
     return audio_filename
+
+
+def generate_session_id() -> str:
+    return str(uuid4())
+
+
+def langfuse_log(session_id: str, trace_name: str, message: str):
+    lf.trace(session_id=session_id, name=trace_name, output=message)
