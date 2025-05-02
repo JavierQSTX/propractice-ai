@@ -100,7 +100,7 @@ audio aligns with the script, specifically assessing whether it covers the key
 elements effectively and the language used is completely correct.
 
 Create a markdown table with 4 columns:
-- Key Element
+- Key Elements
 - Recording Matches (with options Yes/Partially/No)
 - Score (with options 100%/50%/0%)
 - Coaching Recommendations
@@ -143,7 +143,7 @@ unique benefits and differentiators while ensuring a smooth and personalized exp
 example_output>
 ## Content Assessment of Key Elements
 
-| **Key Element**                                     | **Recording matches** |   **Score** | **Coaching Recommendations** |
+| **Key Elements**                                     | **Recording matches** |   **Score** | **Coaching Recommendations** |
 |-----------------------------------------------------|--------------|-----------|-------------------|
 | **Understanding the Prospect's Needs**              | ✅ Yes       | 100% | The prospect's scenario is correctly introduced (Chris moving from Glasgow and comparing banks). |
 | **Confidently Differentiating Bank A from Bank B**  | ⚠️ Partially | 50% | There is an error in the sentence: “confidentially differentiate Bank A from Bank B & emphasizing...”. The word “confidentially” should be “confidently.” Also, the structure of the sentence is unclear. |
