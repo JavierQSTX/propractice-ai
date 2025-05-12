@@ -13,7 +13,7 @@ class ScriptDetails(BaseModel):
 
 
 class FeedbackInput(ScriptDetails):
-    challenge: str
+    challenge: int | str
 
 
 class FeedbackResponse(BaseModel):
@@ -29,5 +29,24 @@ class AudioAnalysis(BaseModel):
     )
 
 
-class TextAnalysis(BaseModel):
-    result: str
+class KeywordMapping(BaseModel):
+    keyword: str = Field(description="The required keyword")
+    transcript_equivalent: str | None = Field(
+        None,
+        description="Exact match or equivalent formulation, if found in the transcript",
+    )
+
+
+class ScriptWithExtractedKeywords(BaseModel):
+    script: str
+    keywords_with_equivalents: list[KeywordMapping]
+
+
+class LessonDetailsExtractedKeywords(BaseModel):
+    """
+    Extract the script and keywords from the original script details
+    section, along with keywords equivalents found in the transcript,
+    if they exist.
+    """
+
+    scripts: list[ScriptWithExtractedKeywords]

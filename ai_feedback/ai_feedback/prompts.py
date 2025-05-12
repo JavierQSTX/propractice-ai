@@ -59,7 +59,7 @@ answer questions or handle complaints.
 In this situation, what the student says is as important as how he says it and why.
 The student's answer should be concise, clear, confident, direct and use the appropriate terms.
 
-I have provided some lesson details and a transcript.
+I have provided some lesson details a transcript and key elements scores.
 
 The lesson details json contains the following fields:
 - "question" - The question that should be answered in the audio answer
@@ -82,8 +82,7 @@ Create a markdown table with 4 columns:
 - Score
 - Coaching Recommendations
 
-For each key element, the score is equal to the number of keywords covered in the recording divided by the total
-number of keywords that needed to be covered, as a percentage.
+For each key element, the score should be taken from the key elements scores input and should be formatted as a percentage.
 
 Make sure you are strict about the word choice, formulation, clarity and conciseness.
 Offer recommendations and corrections if necessary, especially if incorrect words,
@@ -94,7 +93,7 @@ misspellings or ambiguous formulations are used.
 <<The transcript section should contain the transcript of the student's audio recording.>>
 </transcript>
 
-<script_details>
+<lesson_details>
 {
     "briefing": "A prospect, Chris, has recently moved from Glasgow to London and is looking for a new 
 bank. He has just met with Bank A and liked their offerings but wants to see if Bank B
@@ -110,14 +109,20 @@ unique benefits and differentiators while ensuring a smooth and personalized exp
         "script": "Showcase Bank B's premium customer experience, including relationship managers and 24/7 support."
         "keywords": ["showcase", "Bank B", "premium customer experience"]
 
-        "script": "Ensure a seamless onboarding experience, addressing any concerns about switching banks."
-        "keywords": ["ensure", "seamless onboarding experience"]
-
         "script": "Guide the prospect toward making an informed decision to open an Bank B account."
         "keywords": ["guide the prospect", "toward", "making and informed decison"]
     }
 }
-</script_details>
+</lesson_details>
+
+<key_elements_scores>
+{
+  "Understanding the Prospect's Needs: 100,
+  "Confidently Differentiating Bank A from Bank B": 75,
+  "Showcasing Bank A's Premium Customer Experience: 100,
+  "Guiding the Prospect to an Informed Decision: 100,
+}
+</key_elements_scores>
 </example_input>
 
 example_output>
@@ -125,10 +130,10 @@ example_output>
 
 | **Key Elements**                                     | **Recording matches** |   **Score** | **Coaching Recommendations** |
 |-----------------------------------------------------|--------------|-----------|-------------------|
-| **Understanding the Prospect's Needs**              | ✅ Yes       | 100% | The prospect's scenario is correctly introduced (Chris moving from Glasgow and comparing banks). |
-| **Confidently Differentiating Bank A from Bank B**  | ⚠️ Partially | 75% | There is an error in the sentence: “confidentially differentiate Bank A from Bank B & emphasizing...”. The word “confidentially” should be “confidently.” Also, the structure of the sentence is unclear. |
-| **Showcasing Bank A's Premium Customer Experience** | ✅ Yes       | 100% | Mention of relationship management and 24/7 support is present. However, wording is awkward: “showcase premium experience including relationship management and 24-7.” It should be “showcase Bank A’s premium customer experience, including relationship managers and 24/7 support.” |
-| **Guiding the Prospect to an Informed Decision**    | ✅ Yes       | 100% | The final section about onboarding and making a decision is included, but the sentence is awkward: “making an informed decision to open a brand new account with Bank A.” A smoother transition would improve clarity. |
+| **Understanding** the **Prospect**'s **Needs**              | ✅ Yes       | 100% | The prospect's scenario is correctly introduced (Chris moving from Glasgow and comparing banks). |
+| **Confidently** **Differentiating** **Bank A** from **Bank B**  | ⚠️ Partially | 75% | There is an error in the sentence: “confidentially differentiate Bank A from Bank B & emphasizing...”. The word “confidentially” should be “confidently.” Also, the structure of the sentence is unclear. |
+| **Showcasing** **Bank B**'s **Premium Customer Experience** | ✅ Yes       | 100% | Mention of relationship management and 24/7 support is present. However, wording is awkward: “showcase premium experience including relationship management and 24-7.” It should be “showcase Bank A’s premium customer experience, including relationship managers and 24/7 support.” |
+| **Guiding the Prospect** **to** an **Informed Decision**    | ✅ Yes       | 100% | The final section about onboarding and making a decision is included, but the sentence is awkward: “making an informed decision to open a brand new account with Bank A.” A smoother transition would improve clarity. |
 
 ---
 </example_output>
@@ -140,9 +145,9 @@ Important notes:
 - In your answer, whenever you are quoting from the audio, use italics
 - Make sure the table is properly formatted and doesn't have any missing or extra columns or rows.
 - In the "Recording Matches" column of the table:
-    - The "Yes" option should be preceded by ✅
-    - The "Partially" option should be preceded by ⚠️
-    - The "No" option should be preceded by ❌
+    - The "Yes" option should be preceded by ✅ ; this option is selected if the score is between 75 and 100
+    - The "Partially" option should be preceded by ⚠️ ; this option is selected if the score is between 25 and 75
+    - The "No" option should be preceded by ❌ ; this options is selected if the score is between 0 and 25
 - Don't only mention the missing keywords, EXPLAIN for each of them why that specific wording is essential,
 based on the information from the briefing and the best industry practices
 - Each recommendation you make should be SPECIFIC and ACTIONABLE. Don't make any generic recommendations
@@ -153,4 +158,30 @@ based on the information from the briefing and the best industry practices
 a specific example like "X proves useful when you are at the gas station and you forgot your credit card in the car".
 - Regarding word choice, use clear and professional terms, try to avoid artistic or overly
 abstract words (e.g. instead of "palpable" use terms like "clear", "noticeable", "real" or "strong")
+"""
+
+
+EXTRACT_KEYWORDS_PROMPT = """
+You are a communication and client interaction expert with over 20 years of experience.
+You have an excellent command of multiple languages and are extremely good at identifying semantic equivalents.
+Your task is to look at the lesson details and for each keyword to find the equivalent words or phrases used in the transcript.
+There might be no equivalent in the transcript for some keywords.
+
+I have provided some lesson details and a transcript.
+
+The lesson details json contains the following fields:
+- "question" - The question that should be answered in the audio answer
+- "briefing" - The description of the educational module the student is taking part in.
+It outlines what the scenario will be about, core concepts, and what skills the student
+should have developed the end.
+- "keyElements" - a list of important aspects that have to be covered in the audio answer
+Each "keyElement" has:
+- a "script", which is a sentence whose meaning has to be part of the audio answer, in one way or another
+- a list of "keywords", which need to be mentioned exactly or as close synonyms as part of the audio answer, when talking
+about this specific keyElement
+
+Important notes:
+- Key elements might contain placeholders, for example "(Member Name)", "(Amount of Time)" and others;
+make sure to match them in your extraction to the appropriate values in the transcription
+e.g.: "Do you have (Amount of Time) to talk?" should match with "Could we discuss for 3 minutes?"
 """

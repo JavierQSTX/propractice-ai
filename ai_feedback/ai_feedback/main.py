@@ -9,7 +9,9 @@ from fastapi import (
     Request,
     Depends,
 )
+from loguru import logger
 from fastapi.middleware.cors import CORSMiddleware
+import traceback
 
 from ai_feedback.ai import get_feedback
 from ai_feedback.models import FeedbackInput, FeedbackResponse, ScriptDetails
@@ -72,4 +74,8 @@ async def generate_feedback(
     except subprocess.CalledProcessError as e:
         raise HTTPException(status_code=500, detail=f"FFmpeg error: {e}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(str(e))
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500, detail=f"{str(e)}\n\n{traceback.format_exc()}"
+        )
