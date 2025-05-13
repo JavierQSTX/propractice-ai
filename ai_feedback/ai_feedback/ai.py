@@ -33,7 +33,7 @@ def compute_scores(lesson_details: LessonDetailsExtractedKeywords):
     for key_element in lesson_details.scripts:
         total = len(key_element.keywords_with_equivalents)
         if total == 0:
-            scores[key_element.script] = -1
+            scores[key_element.script] = 0
             continue
 
         score = 0
@@ -130,7 +130,9 @@ async def get_keyword_equivalents(
     return keyword_equivalents
 
 
-async def get_feedback(audio_filename: str, script_details: ScriptDetails) -> str:
+async def get_feedback(
+    audio_filename: str, script_details: ScriptDetails
+) -> tuple[str, int, int]:
     session_id = generate_session_id()
     logger.info(f"Lesson details: {script_details}")
     audio = read_audio(audio_filename)
@@ -140,6 +142,10 @@ async def get_feedback(audio_filename: str, script_details: ScriptDetails) -> st
         audio_analysis.transcript, script_details, session_id
     )
     key_elements_scores = compute_scores(keyword_equivalents)
+    average_score = int(
+        sum(key_elements_scores.values()) / len(key_elements_scores.values())
+    )
+
     text_analysis = await get_text_analysis(
         audio_analysis.transcript, script_details, key_elements_scores, session_id
     )
@@ -147,4 +153,4 @@ async def get_feedback(audio_filename: str, script_details: ScriptDetails) -> st
     final_feedback = f"{text_analysis}\n\n## Style Assessment Coaching Recommendations\n\n{audio_analysis.speaking_style_analysis}"
     langfuse_log(session_id, "final-feedback", final_feedback)
 
-    return final_feedback
+    return final_feedback, average_score, audio_analysis.speaking_score

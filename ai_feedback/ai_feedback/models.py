@@ -18,6 +18,8 @@ class FeedbackInput(ScriptDetails):
 
 class FeedbackResponse(BaseModel):
     feedback: str
+    accuracy: int
+    confidence: int
 
 
 class AudioAnalysis(BaseModel):
@@ -26,6 +28,9 @@ class AudioAnalysis(BaseModel):
     )
     speaking_style_analysis: str = Field(
         description="Comprehensive analysis of the vocal style of the speaker"
+    )
+    speaking_score: int = Field(
+        description="Score assessing the overall quality of the speech. Can have one of 3 values: 0/50/100"
     )
 
 

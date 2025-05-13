@@ -120,3 +120,5 @@ data = {"feedback_input_str": json.dumps(feedback_input)}
 
 response = requests.post(feedback_url, files=files, data=data, headers=headers)
 print(response.json()["feedback"])
+print(response.json()["accuracy"])
+print(response.json()["confidence"])

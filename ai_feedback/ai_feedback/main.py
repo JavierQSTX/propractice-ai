@@ -68,8 +68,12 @@ async def generate_feedback(
 
         audio_filename = convert_video_to_audio(video_filename)
 
-        feedback = await get_feedback(audio_filename, script_details)
-        return FeedbackResponse(feedback=feedback)
+        feedback, avearge_score, speaking_score = await get_feedback(
+            audio_filename, script_details
+        )
+        return FeedbackResponse(
+            feedback=feedback, accuracy=avearge_score, confidence=speaking_score
+        )
 
     except subprocess.CalledProcessError as e:
         raise HTTPException(status_code=500, detail=f"FFmpeg error: {e}")
