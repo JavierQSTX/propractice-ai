@@ -1,15 +1,20 @@
 from langfuse.openai import AsyncOpenAI
 from loguru import logger
 import base64
-import json
 import instructor
-from ai_feedback.prompts import (
+from ai_feedback.constants.prompts import (
     AUDIO_ANALYSIS_PROMPT,
     TEXT_ANALYSIS_PROMPT,
     EXTRACT_KEYWORDS_PROMPT,
 )
+from ai_feedback.constants.fallback_prompts import (
+    FALLBACK_INCLUDE_COACHING_RECOMMENDATIONS,
+    FALLBACK_MAX_WORDS_PER_SPEECH_DIMENSION,
+)
+from ai_feedback.constants.conditional_prompts import COACHING_RECOMMENDATIONS_PROMPTS
 from ai_feedback.config import settings
 from ai_feedback.utils import (
+    lf,
     read_audio,
     generate_session_id,
     langfuse_log,
@@ -49,11 +54,22 @@ def compute_scores(lesson_details: LessonDetailsExtractedKeywords):
 async def get_audio_analysis(audio: bytes, session_id: str) -> AudioAnalysis:
     encoded_string = base64.b64encode(audio).decode("utf-8")
 
+    max_words_per_speech_dimension = lf.get_prompt(
+        "max-words-per-speech-dimension",
+        label="production",
+        fallback=FALLBACK_MAX_WORDS_PER_SPEECH_DIMENSION,
+    ).prompt
+
     audio_analysis = await instructor_client.chat.completions.create(
         model=settings.ai_model_name,
         modalities=["text"],
         messages=[
-            {"role": "developer", "content": AUDIO_ANALYSIS_PROMPT},
+            {
+                "role": "developer",
+                "content": AUDIO_ANALYSIS_PROMPT.format(
+                    max_words_per_speech_dimension=max_words_per_speech_dimension
+                ),
+            },
             {
                 "role": "user",
                 "content": [
@@ -80,11 +96,35 @@ async def get_text_analysis(
     key_elements_scores: dict[str, int],
     session_id: str,
 ) -> str:
+    include_coaching_recommendations = (
+        lf.get_prompt(
+            "include-coaching-recommendations",
+            label="production",
+            fallback=FALLBACK_INCLUDE_COACHING_RECOMMENDATIONS,
+        )
+        .prompt.strip()
+        .lower()
+        == "true"
+    )
+    prompt_values = COACHING_RECOMMENDATIONS_PROMPTS[include_coaching_recommendations]
+    logger.info(
+        f"Include coaching recommendations: <{include_coaching_recommendations}>"
+    )
+
     response = await client.chat.completions.create(
         model=settings.ai_model_name,
         modalities=["text"],
         messages=[
-            {"role": "developer", "content": TEXT_ANALYSIS_PROMPT},
+            {
+                "role": "developer",
+                "content": TEXT_ANALYSIS_PROMPT.format(
+                    coaching_column_mention=prompt_values["coaching_column_mention"],
+                    table_example=prompt_values["table_example"],
+                    coaching_column_instructions=prompt_values[
+                        "coaching_column_instructions"
+                    ],
+                ),
+            },
             {
                 "role": "user",
                 "content": (

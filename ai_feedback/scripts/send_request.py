@@ -7,7 +7,6 @@ load_dotenv(override=True)
 
 # url = "https://my-fastapi-service-140249299005.us-central1.run.app"
 url = "http://0.0.0.0:8080"
-# url = "http://0.0.0.0:8000"
 login_url = f"{url}/login"
 feedback_url = f"{url}/feedback"
 

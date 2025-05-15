@@ -33,16 +33,11 @@ Compelling: Bold choices—maybe a dramatic pause, an unexpected growl, or a pla
 Dull: Hesitant delivery. Playing it safe. Audience senses fear or detachment.
 </style_dimensions>
 
-When analyzing style, only mention:
-- the 2 style dimensions where the student performed best, while pointing out with specific examples from the audio
-on what they did well
-- 2 style dimensions where the student has most areas of improvement, while giving specific examples from the audio
-that can help in this endeavour
-
 Important notes:
 - Do not refer to the audio or the student, just to the quality and assesment of the recording.
 - Use bullet points to illustrate each point in the audio analysis section
 - Try to make each point in the style analysis section concise, enthusiastic and concrete
+- Each dimension of the style analysis  should have {max_words_per_speech_dimension} words or less.
 - Try to avoid directly labelling the student's speech pattern with negative words like
 "dull" or "boring"; remember your purpose is to coach him in an encouraging, yet realistic manner
 - Here's a good and a bad example of what kind of phrases you should use in your analysis:
@@ -72,21 +67,13 @@ Each "keyElement" has:
 - a list of "keywords", which need to be mentioned exactly or as close synonyms as part of the audio answer, when talking
 about this specific keyElement
 
-In a section called "Content Assessment of Key Elements", Please analyze how closely the spoken content in the
-audio aligns with the script, specifically assessing whether it covers the key
-elements effectively and the language used is completely correct.
-
-Create a markdown table with 4 columns:
+In a section called "Content Assessment of Key Elements", create a markdown table with the following columns:
 - Key Elements
 - Recording Matches (with options Yes/Partially/No)
 - Score
-- Coaching Recommendations
+{coaching_column_mention}
 
 For each key element, the score should be taken from the key elements scores input and should be formatted as a percentage.
-
-Make sure you are strict about the word choice, formulation, clarity and conciseness.
-Offer recommendations and corrections if necessary, especially if incorrect words,
-misspellings or ambiguous formulations are used.
 
 <example_input>
 <transcript>
@@ -94,12 +81,12 @@ misspellings or ambiguous formulations are used.
 </transcript>
 
 <lesson_details>
-{
+{{
     "briefing": "A prospect, Chris, has recently moved from Glasgow to London and is looking for a new 
 bank. He has just met with Bank A and liked their offerings but wants to see if Bank B
 would be a better option. The Bank B banker, Emma, must effectively highlight Bank B's 
 unique benefits and differentiators while ensuring a smooth and personalized experience",
-    "keyElements": {
+    "keyElements": {{
         "script": "Understand the prospect's needs and tailor the conversation accordingly.",
         "keywords": ["understand", "the prospect", "needs"]
 
@@ -110,54 +97,34 @@ unique benefits and differentiators while ensuring a smooth and personalized exp
         "keywords": ["showcase", "Bank B", "premium customer experience"]
 
         "script": "Guide the prospect toward making an informed decision to open an Bank B account."
-        "keywords": ["guide the prospect", "toward", "making and informed decison"]
-    }
-}
+        "keywords": ["guide the prospect", "toward", "making an informed decison"]
+    }}
+}}
 </lesson_details>
 
 <key_elements_scores>
-{
-  "Understanding the Prospect's Needs: 100,
-  "Confidently Differentiating Bank A from Bank B": 75,
-  "Showcasing Bank A's Premium Customer Experience: 100,
-  "Guiding the Prospect to an Informed Decision: 100,
-}
+{{
+  "Understand the prospect's needs and tailor the conversation accordingly.": 100,
+  "Confidently differentiate Bank B from Bank A, emphasizing global banking digital services, and customer benefits.": 75,
+  "Showcase Bank B's premium customer experience, including relationship managers and 24/7 support.": 100,
+  "Guide the prospect toward making an informed decision to open an Bank B account.": 100,
+}}
 </key_elements_scores>
 </example_input>
 
 example_output>
 ## Content Assessment of Key Elements
-
-| **Key Elements**                                     | **Recording matches** |   **Score** | **Coaching Recommendations** |
-|-----------------------------------------------------|--------------|-----------|-------------------|
-| **Understanding** the **Prospect**'s **Needs**              | ✅ Yes       | 100% | The prospect's scenario is correctly introduced (Chris moving from Glasgow and comparing banks). |
-| **Confidently** **Differentiating** **Bank A** from **Bank B**  | ⚠️ Partially | 75% | There is an error in the sentence: “confidentially differentiate Bank A from Bank B & emphasizing...”. The word “confidentially” should be “confidently.” Also, the structure of the sentence is unclear. |
-| **Showcasing** **Bank B**'s **Premium Customer Experience** | ✅ Yes       | 100% | Mention of relationship management and 24/7 support is present. However, wording is awkward: “showcase premium experience including relationship management and 24-7.” It should be “showcase Bank A’s premium customer experience, including relationship managers and 24/7 support.” |
-| **Guiding the Prospect** **to** an **Informed Decision**    | ✅ Yes       | 100% | The final section about onboarding and making a decision is included, but the sentence is awkward: “making an informed decision to open a brand new account with Bank A.” A smoother transition would improve clarity. |
-
----
+{table_example}
 </example_output>
 
 Important notes:
 - You answer needs to be in markdown format
-- In the "Coaching Recommendations" column, emphasize the missing keywords
-- In your answer, whenever you are referring to the keywords, bold them
-- In your answer, whenever you are quoting from the audio, use italics
 - Make sure the table is properly formatted and doesn't have any missing or extra columns or rows.
 - In the "Recording Matches" column of the table:
     - The "Yes" option should be preceded by ✅ ; this option is selected if the score is between 75 and 100
     - The "Partially" option should be preceded by ⚠️ ; this option is selected if the score is between 25 and 75
     - The "No" option should be preceded by ❌ ; this options is selected if the score is between 0 and 25
-- Don't only mention the missing keywords, EXPLAIN for each of them why that specific wording is essential,
-based on the information from the briefing and the best industry practices
-- Each recommendation you make should be SPECIFIC and ACTIONABLE. Don't make any generic recommendations
-- Pay special attention to mispronounced words, make sure to mention them in the "Coaching Recommendations" column
-- Do not refer to the audio or the student, just to the quality and assesment of the recording.
-- NEVER mention brand names or commercial entities other than the ones provided as part of this conversation
-- Instead of making a suggestion like "Incorporate real-world examples to illustrate the benefits of X", give
-a specific example like "X proves useful when you are at the gas station and you forgot your credit card in the car".
-- Regarding word choice, use clear and professional terms, try to avoid artistic or overly
-abstract words (e.g. instead of "palpable" use terms like "clear", "noticeable", "real" or "strong")
+{coaching_column_instructions}
 """
 
 
