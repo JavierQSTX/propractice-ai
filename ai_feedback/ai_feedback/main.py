@@ -68,11 +68,11 @@ async def generate_feedback(
 
         audio_filename = convert_video_to_audio(video_filename)
 
-        feedback, avearge_score, speaking_score = await get_feedback(
+        feedback, average_score, confidence_score = await get_feedback(
             audio_filename, script_details
         )
         return FeedbackResponse(
-            feedback=feedback, accuracy=avearge_score, confidence=speaking_score
+            feedback=feedback, accuracy=average_score, confidence=confidence_score
         )
 
     except subprocess.CalledProcessError as e:

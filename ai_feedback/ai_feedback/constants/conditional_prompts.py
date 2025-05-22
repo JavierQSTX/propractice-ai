@@ -4,8 +4,8 @@ COACHING_RECOMMENDATIONS_PROMPTS = {
         "table_example": """
 | **Key Elements**                                     | **Recording matches** |   **Score** | **Coaching Recommendations** |
 |-----------------------------------------------------|--------------|-----------|-------------------|
-| - **understand**, **the prospect**, **needs**              | ✅ Yes       | 100% | The prospect's scenario is correctly introduced (Chris moving from Glasgow and comparing banks). |
-| - **confidently**, **differentiate**, **Bank A**, **Bank B**  | ⚠️ Partially | 75% | There is an error in the sentence: “confidentially differentiate Bank A from Bank B & emphasizing...”. The word “confidentially” should be “confidently.” Also, the structure of the sentence is unclear. |
+| - **understand**, the prospect, needs              | ⚠️ Partially       | 33% | Only the concept of understanding is mentioned, but there is no mention of needs or of the prospect | 
+| - confidently, **differentiate**, **Bank A**, **Bank B**  | ⚠️ Partially | 75% | There is an error in the sentence: “confidentially differentiate Bank A from Bank B & emphasizing...”. The word “confidentially” should be “confidently.” Also, the structure of the sentence is unclear. |
 | - **showcase**, **Bank B**, **premium customer experience** | ✅ Yes       | 100% | Mention of relationship management and 24/7 support is present. However, wording is awkward: “showcase premium experience including relationship management and 24-7.” It should be “showcase Bank A’s premium customer experience, including relationship managers and 24/7 support.” |
 | - **guide the prospect**, **toward**, **making an informed decison**    | ✅ Yes       | 100% | The final section about onboarding and making a decision is included, but the sentence is awkward: “making an informed decision to open a brand new account with Bank A.” A smoother transition would improve clarity. |
 ---
@@ -37,10 +37,10 @@ abstract words (e.g. instead of "palpable" use terms like "clear", "noticeable",
         "table_example": """
 | **Key Elements**                                    | **Recording matches** |   **Score** |
 |-----------------------------------------------------|-----------------------|-------------|
-| - **understand**, **the prospect**, **needs**              | ✅ Yes       | 100% |
-| - **confidently**, **differentiate**, **Bank A**, **Bank B**  | ⚠️ Partially | 75% |
-| - **showcase**, **Bank B**, **premium customer experience** | ✅ Yes       | 100% |
-| - **guide the prospect**, **toward**, **making an informed decison**    | ✅ Yes       | 100% |
+| Understand the prospect's needs and tailor the conversation accordingly.        | ⚠️ Partially       | 33% |
+| Confidently differentiate Bank B from Bank A, emphasizing global banking digital services, and customer benefits. | 75% |
+| Showcase Bank B's premium customer experience, including relationship managers and 24/7 support. | ✅ Yes       | 100% |
+| Guide the prospect toward making an informed decision to open an Bank B account.  | ✅ Yes       | 100% |
 ---
 """,
         "coaching_column_instructions": "- Only output the table and nothing else",

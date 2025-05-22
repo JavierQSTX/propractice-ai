@@ -73,7 +73,6 @@ In a section called "Content Assessment of Key Elements", create a markdown tabl
 - Score
 {coaching_column_mention}
 
-For each key element, the score should be taken from the key elements scores input and should be formatted as a percentage.
 
 <example_input>
 <transcript>
@@ -119,11 +118,12 @@ example_output>
 
 Important notes:
 - You answer needs to be in markdown format
+- For each key element, the score should be taken from the key elements scores input and should be formatted as a percentage.
 - Make sure the table is properly formatted and doesn't have any missing or extra columns or rows.
 - In the "Recording Matches" column of the table:
-    - The "Yes" option should be preceded by ✅ ; this option is selected if the score is between 75 and 100
-    - The "Partially" option should be preceded by ⚠️ ; this option is selected if the score is between 25 and 75
-    - The "No" option should be preceded by ❌ ; this options is selected if the score is between 0 and 25
+    - The "Yes" option should be preceded by ✅ ; this option is selected if the score is exactly 100
+    - The "Partially" option should be preceded by ⚠️ ; this option is selected if the score is between 1 and 99 (both inclusive)
+    - The "No" option should be preceded by ❌ ; this options is selected if the score is exactly 0
 {coaching_column_instructions}
 """
 
@@ -133,6 +133,7 @@ You are a communication and client interaction expert with over 20 years of expe
 You have an excellent command of multiple languages and are extremely good at identifying semantic equivalents.
 Your task is to look at the lesson details and for each keyword to find the equivalent words or phrases used in the transcript.
 There might be no equivalent in the transcript for some keywords.
+Additionally, you will also have to decide if the transcript follows the lesson details or not.
 
 I have provided some lesson details and a transcript.
 
@@ -151,4 +152,11 @@ Important notes:
 - Key elements might contain placeholders, for example "(Member Name)", "(Amount of Time)" and others;
 make sure to match them in your extraction to the appropriate values in the transcription
 e.g.: "Do you have (Amount of Time) to talk?" should match with "Could we discuss for 3 minutes?"
+- examples of ways in which the transcript can differ from the lesson details:
+    - is empty or almost empty
+    - is about a completely different subject
+    - doesn't even try to cover the lesson at all
+    - starts on the right track, but then diverges to other subjects not present in the lesson
 """
+
+SPEECH_ANALYSIS_SKIPPED = "Style Assessment skipped, make sure the uploaded video matches the challenge scenario."

@@ -6,6 +6,7 @@ from ai_feedback.constants.prompts import (
     AUDIO_ANALYSIS_PROMPT,
     TEXT_ANALYSIS_PROMPT,
     EXTRACT_KEYWORDS_PROMPT,
+    SPEECH_ANALYSIS_SKIPPED,
 )
 from ai_feedback.constants.fallback_prompts import (
     FALLBACK_INCLUDE_COACHING_RECOMMENDATIONS,
@@ -32,23 +33,42 @@ client = AsyncOpenAI(
 instructor_client = instructor.from_openai(client)
 
 
-def compute_scores(lesson_details: LessonDetailsExtractedKeywords):
-    scores = {}
+def get_scores_and_matching_keywords(
+    lesson_details: LessonDetailsExtractedKeywords,
+) -> tuple[dict[str, int], dict[str, list[str]]]:
+    if not lesson_details.transcript_matches_lesson:
+        return (
+            {key_element.script: 0 for key_element in lesson_details.scripts},
+            {
+                key_element.script: [
+                    kw.keyword for kw in key_element.keywords_with_equivalents
+                ]
+                for key_element in lesson_details.scripts
+            },
+        )
 
+    scores = {}
+    matching_keywords = {}
     for key_element in lesson_details.scripts:
         total = len(key_element.keywords_with_equivalents)
         if total == 0:
             scores[key_element.script] = 0
+            matching_keywords[key_element.script] = []
             continue
 
         score = 0
+        key_words = []
         for mapping in key_element.keywords_with_equivalents:
-            if mapping.transcript_equivalent is not None:
+            if mapping.transcript_equivalent is None:
+                key_words.append(mapping.keyword)
+            else:
                 score += 1
+                key_words.append(f"**{mapping.keyword}**")
 
         scores[key_element.script] = int(100 * score / total)
+        matching_keywords[key_element.script] = key_words
 
-    return scores
+    return scores, matching_keywords
 
 
 async def get_audio_analysis(audio: bytes, session_id: str) -> AudioAnalysis:
@@ -94,6 +114,7 @@ async def get_text_analysis(
     transcript: str,
     script_details: ScriptDetails,
     key_elements_scores: dict[str, int],
+    key_elements_matching_keywords: dict[str, list[str]],
     session_id: str,
 ) -> str:
     include_coaching_recommendations = (
@@ -141,6 +162,9 @@ async def get_text_analysis(
     if text_analysis is None:
         raise RuntimeError("External API call failed: received None")
 
+    for script, keywords in key_elements_matching_keywords.items():
+        text_analysis = text_analysis.replace(script, f"- {', '.join(keywords)}")
+
     return text_analysis
 
 
@@ -181,16 +205,19 @@ async def get_feedback(
     keyword_equivalents = await get_keyword_equivalents(
         audio_analysis.transcript, script_details, session_id
     )
-    key_elements_scores = compute_scores(keyword_equivalents)
-    average_score = int(
-        sum(key_elements_scores.values()) / len(key_elements_scores.values())
-    )
+    scores, matching_keywords = get_scores_and_matching_keywords(keyword_equivalents)
+    average_score = int(sum(scores.values()) / len(scores))
 
     text_analysis = await get_text_analysis(
-        audio_analysis.transcript, script_details, key_elements_scores, session_id
+        audio_analysis.transcript, script_details, scores, matching_keywords, session_id
+    )
+    speech_analysis = (
+        SPEECH_ANALYSIS_SKIPPED
+        if not keyword_equivalents.transcript_matches_lesson
+        else audio_analysis.speaking_style_analysis
     )
 
-    final_feedback = f"{text_analysis}\n\n## Style Assessment Coaching Recommendations\n\n{audio_analysis.speaking_style_analysis}"
+    final_feedback = f"{text_analysis}\n\n## Style Assessment Coaching Recommendations\n\n{speech_analysis}"
     langfuse_log(session_id, "final-feedback", final_feedback)
 
-    return final_feedback, average_score, audio_analysis.speaking_score
+    return final_feedback, average_score, audio_analysis.confidence_score
