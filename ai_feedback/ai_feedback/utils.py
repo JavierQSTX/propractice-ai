@@ -23,5 +23,5 @@ def generate_session_id() -> str:
     return str(uuid4())
 
 
-def langfuse_log(session_id: str, trace_name: str, message: str):
+def langfuse_log(*, session_id: str, trace_name: str, message: str):
     lf.trace(session_id=session_id, name=trace_name, output=message)

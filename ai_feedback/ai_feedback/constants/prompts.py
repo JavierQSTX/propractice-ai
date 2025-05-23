@@ -159,4 +159,29 @@ e.g.: "Do you have (Amount of Time) to talk?" should match with "Could we discus
     - starts on the right track, but then diverges to other subjects not present in the lesson
 """
 
+
+JUDGE_FEEDBACK_PROMPT = """
+You are evaluating an AI-generated feedback given to a user's spoken response.
+
+You will received:
+- Lesson details - an explanation of the scenario, key elements the user has to cover and key words that
+have to be mentioned either directly or through synonyms and other formulations
+- user's response transcript - transcript of the full user response; the speech-to-text is not perfect,
+so it might contain small artifacts
+- AI Feedback - feedback offered by a different AI model, which the user has seen and has deemed unfair/unjust/too strict/bad
+
+Task:
+1. Is the feedback accurate in judging whether key scenario elements were mentioned?
+2. Is the style feedback personalized and constructive?
+3. What could have caused the user to be unsatisfied?
+4. Suggest better or more useful feedback if possible.
+
+Respond with:
+- Accuracy issues
+- Style coaching effectiveness
+- Suspected root cause of dissatisfaction
+- Improved version of feedback (if relevant)
+
+"""
+
 SPEECH_ANALYSIS_SKIPPED = "Style Assessment skipped, make sure the uploaded video matches the challenge scenario."

@@ -1,12 +1,12 @@
 from langfuse.openai import AsyncOpenAI
 from loguru import logger
-import json
 import base64
 import instructor
 from ai_feedback.constants.prompts import (
     AUDIO_ANALYSIS_PROMPT,
     TEXT_ANALYSIS_PROMPT,
     EXTRACT_KEYWORDS_PROMPT,
+    JUDGE_FEEDBACK_PROMPT,
     SPEECH_ANALYSIS_SKIPPED,
 )
 from ai_feedback.constants.fallback_prompts import (
@@ -35,22 +35,22 @@ instructor_client = instructor.from_openai(client)
 
 
 def get_scores_and_matching_keywords(
-    lesson_details: LessonDetailsExtractedKeywords,
+    keyword_equivalents: LessonDetailsExtractedKeywords,
 ) -> tuple[dict[str, int], dict[str, list[str]]]:
-    if not lesson_details.transcript_matches_lesson:
+    if not keyword_equivalents.transcript_matches_lesson:
         return (
-            {key_element.script: 0 for key_element in lesson_details.scripts},
+            {key_element.script: 0 for key_element in keyword_equivalents.scripts},
             {
                 key_element.script: [
                     kw.keyword for kw in key_element.keywords_with_equivalents
                 ]
-                for key_element in lesson_details.scripts
+                for key_element in keyword_equivalents.scripts
             },
         )
 
     scores = {}
     matching_keywords = {}
-    for key_element in lesson_details.scripts:
+    for key_element in keyword_equivalents.scripts:
         total = len(key_element.keywords_with_equivalents)
         if total == 0:
             scores[key_element.script] = 0
@@ -112,10 +112,11 @@ async def get_audio_analysis(audio: bytes, session_id: str) -> AudioAnalysis:
 
 
 async def get_text_analysis(
+    *,
     transcript: str,
     script_details: ScriptDetails,
-    key_elements_scores: dict[str, int],
-    key_elements_matching_keywords: dict[str, list[str]],
+    scores: dict[str, int],
+    matching_keywords: dict[str, list[str]],
     session_id: str,
 ) -> str:
     include_coaching_recommendations = (
@@ -133,7 +134,7 @@ async def get_text_analysis(
         f"Include coaching recommendations: <{include_coaching_recommendations}>"
     )
 
-    response = await client.chat.completions.create(
+    response = await client.chat.completions.create(  # pyright: ignore
         model=settings.ai_model_name,
         modalities=["text"],
         messages=[
@@ -152,7 +153,7 @@ async def get_text_analysis(
                 "content": (
                     f"<transcript>{transcript}</transcript>\n\n"
                     f"<script_details>{script_details}</script_details>\n\n"
-                    f"<key_elements_scores>{key_elements_scores}</key_elements_scores>\n\n"
+                    f"<key_elements_scores>{scores}</key_elements_scores>\n\n"
                 ),
             },
         ],
@@ -163,7 +164,7 @@ async def get_text_analysis(
     if text_analysis is None:
         raise RuntimeError("External API call failed: received None")
 
-    for script, keywords in key_elements_matching_keywords.items():
+    for script, keywords in matching_keywords.items():
         # replacing script with list of bold-formatted keywords
         text_analysis = text_analysis.replace(script, f"- {', '.join(keywords)}")
 
@@ -171,7 +172,7 @@ async def get_text_analysis(
 
 
 async def get_keyword_equivalents(
-    transcript: str, script_details: ScriptDetails, session_id: str
+    *, transcript: str, script_details: ScriptDetails, session_id: str
 ) -> LessonDetailsExtractedKeywords:
     keyword_equivalents = await instructor_client.chat.completions.create(
         model=settings.ai_model_name,
@@ -196,8 +197,35 @@ async def get_keyword_equivalents(
     return keyword_equivalents
 
 
+async def judge_feedback(
+    *, transcript: str, script_details: ScriptDetails, ai_feedback: str, session_id: str
+) -> LessonDetailsExtractedKeywords:
+    response = await client.chat.completions.create(  # pyright: ignore
+        model=settings.ai_model_name,
+        modalities=["text"],
+        messages=[
+            {"role": "developer", "content": JUDGE_FEEDBACK_PROMPT},
+            {
+                "role": "user",
+                "content": (
+                    f"<lesson_details>{script_details}</lesson_details>"
+                    f"<user_transcript>{transcript}</user_transcript>\n\n"
+                    f"<ai_feedback>{ai_feedback}</ai_feedback>"
+                ),
+            },
+        ],
+        session_id=session_id,
+    )
+
+    judged_feedback = response.choices[0].message.content
+    if judged_feedback is None:
+        raise RuntimeError("External API call failed: received None")
+
+    return judged_feedback
+
+
 async def get_feedback(
-    audio_filename: str, script_details: ScriptDetails
+    *, audio_filename: str, script_details: ScriptDetails
 ) -> tuple[str, int, int]:
     session_id = generate_session_id()
     logger.info(f"Lesson details: {script_details}")
@@ -206,7 +234,9 @@ async def get_feedback(
     audio_analysis = await get_audio_analysis(audio, session_id)
 
     keyword_equivalents = await get_keyword_equivalents(
-        audio_analysis.transcript, script_details, session_id
+        transcript=audio_analysis.transcript,
+        script_details=script_details,
+        session_id=session_id,
     )
     scores, matching_keywords = get_scores_and_matching_keywords(keyword_equivalents)
     logger.info(f"Scores: {scores}")
@@ -215,7 +245,11 @@ async def get_feedback(
     average_score = int(sum(scores.values()) / len(scores))
 
     text_analysis = await get_text_analysis(
-        audio_analysis.transcript, script_details, scores, matching_keywords, session_id
+        transcript=audio_analysis.transcript,
+        script_details=script_details,
+        scores=scores,
+        matching_keywords=matching_keywords,
+        session_id=session_id,
     )
     speech_analysis = (
         SPEECH_ANALYSIS_SKIPPED
@@ -227,6 +261,15 @@ async def get_feedback(
         f"{text_analysis}*only bolded keywrods are mentioned during the recording\n\n"
         f"## Style Assessment Coaching Recommendations\n\n{speech_analysis}"
     )
-    langfuse_log(session_id, "final-feedback", final_feedback)
+    # await judge_feedback(
+    #     transcript=audio_analysis.transcript,
+    #     script_details=script_details,
+    #     ai_feedback=final_feedback,
+    #     session_id=session_id,
+    # )
+
+    langfuse_log(
+        session_id=session_id, trace_name="final-feedback", message=final_feedback
+    )
 
     return final_feedback, average_score, audio_analysis.confidence_score

@@ -69,7 +69,7 @@ async def generate_feedback(
         audio_filename = convert_video_to_audio(video_filename)
 
         feedback, average_score, confidence_score = await get_feedback(
-            audio_filename, script_details
+            audio_filename=audio_filename, script_details=script_details
         )
         return FeedbackResponse(
             feedback=feedback, accuracy=average_score, confidence=confidence_score
