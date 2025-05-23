@@ -258,8 +258,8 @@ async def get_feedback(
     )
 
     final_feedback = (
-        f"{text_analysis}*only bolded keywrods are mentioned during the recording\n\n"
-        f"## Style Assessment Coaching Recommendations\n\n{speech_analysis}"
+        f"{text_analysis}*only bolded keywords are mentioned during the recording\n\n"
+        f"## Style Coaching Recommendations\n\n{speech_analysis}"
     )
     # await judge_feedback(
     #     transcript=audio_analysis.transcript,
