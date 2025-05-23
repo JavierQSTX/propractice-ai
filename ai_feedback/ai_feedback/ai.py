@@ -1,5 +1,6 @@
 from langfuse.openai import AsyncOpenAI
 from loguru import logger
+import json
 import base64
 import instructor
 from ai_feedback.constants.prompts import (
@@ -163,6 +164,7 @@ async def get_text_analysis(
         raise RuntimeError("External API call failed: received None")
 
     for script, keywords in key_elements_matching_keywords.items():
+        # replacing script with list of bold-formatted keywords
         text_analysis = text_analysis.replace(script, f"- {', '.join(keywords)}")
 
     return text_analysis
@@ -199,13 +201,17 @@ async def get_feedback(
 ) -> tuple[str, int, int]:
     session_id = generate_session_id()
     logger.info(f"Lesson details: {script_details}")
-    audio = read_audio(audio_filename)
 
+    audio = read_audio(audio_filename)
     audio_analysis = await get_audio_analysis(audio, session_id)
+
     keyword_equivalents = await get_keyword_equivalents(
         audio_analysis.transcript, script_details, session_id
     )
     scores, matching_keywords = get_scores_and_matching_keywords(keyword_equivalents)
+    logger.info(f"Scores: {scores}")
+    logger.info(f"Matching keywords: {matching_keywords}")
+
     average_score = int(sum(scores.values()) / len(scores))
 
     text_analysis = await get_text_analysis(
@@ -217,7 +223,10 @@ async def get_feedback(
         else audio_analysis.speaking_style_analysis
     )
 
-    final_feedback = f"{text_analysis}\n\n## Style Assessment Coaching Recommendations\n\n{speech_analysis}"
+    final_feedback = (
+        f"{text_analysis}*only bolded keywrods are mentioned during the recording\n\n"
+        f"## Style Assessment Coaching Recommendations\n\n{speech_analysis}"
+    )
     langfuse_log(session_id, "final-feedback", final_feedback)
 
     return final_feedback, average_score, audio_analysis.confidence_score
