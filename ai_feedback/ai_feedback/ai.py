@@ -66,7 +66,11 @@ def get_scores_and_matching_keywords(
                 score += 1
                 key_words.append(f"**{mapping.keyword}**")
 
-        scores[key_element.script] = int(100 * score / total)
+        try:
+            scores[key_element.script] = int(100 * score / total)
+        except ZeroDivisionError:
+            scores[key_element.script] = 0
+
         matching_keywords[key_element.script] = key_words
 
     return scores, matching_keywords
@@ -246,7 +250,10 @@ async def get_feedback(
     logger.info(f"Scores: {scores}")
     logger.info(f"Matching keywords: {matching_keywords}")
 
-    average_score = int(sum(scores.values()) / len(scores))
+    try:
+        average_score = int(sum(scores.values()) / len(scores))
+    except ZeroDivisionError:
+        average_score = 0
 
     text_analysis = await get_text_analysis(
         transcript=audio_analysis.transcript,
