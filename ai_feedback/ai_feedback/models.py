@@ -14,12 +14,20 @@ class ScriptDetails(BaseModel):
 
 class FeedbackInput(ScriptDetails):
     challenge: int | str
+    tags: list[str] | None = None
+    user_id: str | None = None
 
 
 class FeedbackResponse(BaseModel):
     feedback: str
     accuracy: int
     confidence: int
+    final_trace_id: str
+
+
+class UserLikeRequest(BaseModel):
+    trace_id: str
+    positive_feedback: bool
 
 
 class AudioAnalysis(BaseModel):

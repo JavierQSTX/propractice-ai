@@ -225,8 +225,12 @@ async def judge_feedback(
 
 
 async def get_feedback(
-    *, audio_filename: str, script_details: ScriptDetails
-) -> tuple[str, int, int]:
+    *,
+    audio_filename: str,
+    script_details: ScriptDetails,
+    user_id: str | None,
+    tags: list[str] | None,
+) -> tuple[str, int, int, str]:
     session_id = generate_session_id()
     logger.info(f"Lesson details: {script_details}")
 
@@ -268,8 +272,17 @@ async def get_feedback(
     #     session_id=session_id,
     # )
 
-    langfuse_log(
-        session_id=session_id, trace_name="final-feedback", message=final_feedback
+    final_trace_id = langfuse_log(
+        session_id=session_id,
+        trace_name="final-feedback",
+        message=final_feedback,
+        user_id=user_id,
+        tags=tags,
     )
 
-    return final_feedback, average_score, audio_analysis.confidence_score
+    return (
+        final_feedback,
+        average_score,
+        audio_analysis.confidence_score,
+        final_trace_id,
+    )

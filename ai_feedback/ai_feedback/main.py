@@ -14,8 +14,13 @@ from fastapi.middleware.cors import CORSMiddleware
 import traceback
 
 from ai_feedback.ai import get_feedback
-from ai_feedback.models import FeedbackInput, FeedbackResponse, ScriptDetails
-from ai_feedback.utils import convert_video_to_audio
+from ai_feedback.models import (
+    FeedbackInput,
+    FeedbackResponse,
+    ScriptDetails,
+    UserLikeRequest,
+)
+from ai_feedback.utils import convert_video_to_audio, langfuse_user_like
 from ai_feedback.config import settings
 from ai_feedback.authentication import verify_token, create_access_token
 
@@ -54,6 +59,7 @@ async def generate_feedback(
     video: UploadFile = File(...), feedback_input_str: str = Form(...)
 ):
     try:
+        logger.info(f"Feedback request input {feedback_input_str}")
         feedback_input = FeedbackInput.model_validate_json(feedback_input_str)
         script_details = ScriptDetails(
             question=feedback_input.question,
@@ -68,15 +74,35 @@ async def generate_feedback(
 
         audio_filename = convert_video_to_audio(video_filename)
 
-        feedback, average_score, confidence_score = await get_feedback(
-            audio_filename=audio_filename, script_details=script_details
+        feedback, average_score, confidence_score, final_trace_id = await get_feedback(
+            audio_filename=audio_filename,
+            script_details=script_details,
+            user_id=feedback_input.user_id,
+            tags=feedback_input.tags,
         )
         return FeedbackResponse(
-            feedback=feedback, accuracy=average_score, confidence=confidence_score
+            feedback=feedback,
+            accuracy=average_score,
+            confidence=confidence_score,
+            final_trace_id=final_trace_id,
         )
 
     except subprocess.CalledProcessError as e:
         raise HTTPException(status_code=500, detail=f"FFmpeg error: {e}")
+    except Exception as e:
+        logger.error(str(e))
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500, detail=f"{str(e)}\n\n{traceback.format_exc()}"
+        )
+
+
+@app.post(
+    "/like", response_model=FeedbackResponse, dependencies=[Depends(verify_token)]
+)
+async def user_like(req: UserLikeRequest):
+    try:
+        langfuse_user_like(req.trace_id, req.positive_feedback)
     except Exception as e:
         logger.error(str(e))
         logger.error(traceback.format_exc())

@@ -51,6 +51,8 @@ VIDEO_FILENAME = "module_2/Challenge 3 bad recording.mp4"
 
 feedback_input = {
     "challenge": 3,
+    "tags": ["test1", "test2"],
+    "user_id": "my_test_user_id",
     "question": "You are speaking with an existing Member. What should you say to transition into the Member Financial Review?",
     "briefing": "By learning and practicing with this ProPractice module, you will increase your confidence and success in presenting the Member with a compelling entry line when you are seeking to conduct a Member Review. • Transitioning After the Use of a Tag-On • New Member Entry Line • Existing Member Entry Line • Transitioning to the Member Financial Review After Problem Resolution",
     "keyElements": [
