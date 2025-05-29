@@ -97,9 +97,7 @@ async def generate_feedback(
         )
 
 
-@app.post(
-    "/like", response_model=FeedbackResponse, dependencies=[Depends(verify_token)]
-)
+@app.post("/like", dependencies=[Depends(verify_token)])
 async def user_like(req: UserLikeRequest):
     try:
         langfuse_user_like(req.trace_id, req.positive_feedback)
