@@ -13,16 +13,22 @@ from loguru import logger
 from fastapi.middleware.cors import CORSMiddleware
 import traceback
 
-from ai_feedback.ai import get_feedback
+from ai_feedback.ai import get_feedback, judge_feedback
 from ai_feedback.models import (
     FeedbackInput,
     FeedbackResponse,
     ScriptDetails,
     UserLikeRequest,
+    LangfuseTracesRequest,
 )
-from ai_feedback.utils import convert_video_to_audio, langfuse_user_like
+from ai_feedback.utils import (
+    convert_video_to_audio,
+    langfuse_user_like,
+    fetch_feedback_input_output,
+)
 from ai_feedback.config import settings
 from ai_feedback.authentication import verify_token, create_access_token
+import asyncio
 
 
 app = FastAPI()
@@ -74,7 +80,7 @@ async def generate_feedback(
 
         audio_filename = convert_video_to_audio(video_filename)
 
-        feedback, average_score, confidence_score, final_trace_id = await get_feedback(
+        feedback, average_score, confidence_score, session_id = await get_feedback(
             audio_filename=audio_filename,
             script_details=script_details,
             user_id=feedback_input.user_id,
@@ -84,7 +90,7 @@ async def generate_feedback(
             feedback=feedback,
             accuracy=average_score,
             confidence=confidence_score,
-            final_trace_id=final_trace_id,
+            session_id=session_id,
         )
 
     except subprocess.CalledProcessError as e:
@@ -100,7 +106,26 @@ async def generate_feedback(
 @app.post("/like", dependencies=[Depends(verify_token)])
 async def user_like(req: UserLikeRequest):
     try:
-        langfuse_user_like(req.trace_id, req.positive_feedback)
+        langfuse_user_like(req.session_id, req.positive_feedback)
+        if not req.positive_feedback:
+            asyncio.create_task(
+                judge_session(LangfuseTracesRequest(session_id=req.session_id))
+            )
+    except Exception as e:
+        logger.error(str(e))
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500, detail=f"{str(e)}\n\n{traceback.format_exc()}"
+        )
+
+
+@app.post("/judge", dependencies=[Depends(verify_token)])
+async def judge_session(req: LangfuseTracesRequest):
+    try:
+        ai_input, ai_feedback = fetch_feedback_input_output(req.session_id)
+        await judge_feedback(
+            ai_input=ai_input, ai_feedback=ai_feedback, session_id=req.session_id
+        )
     except Exception as e:
         logger.error(str(e))
         logger.error(traceback.format_exc())

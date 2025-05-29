@@ -202,7 +202,7 @@ async def get_keyword_equivalents(
 
 
 async def judge_feedback(
-    *, transcript: str, script_details: ScriptDetails, ai_feedback: str, session_id: str
+    *, ai_input: str, ai_feedback: str, session_id: str
 ) -> LessonDetailsExtractedKeywords:
     response = await client.chat.completions.create(  # pyright: ignore
         model=settings.ai_model_name,
@@ -212,9 +212,7 @@ async def judge_feedback(
             {
                 "role": "user",
                 "content": (
-                    f"<lesson_details>{script_details}</lesson_details>"
-                    f"<user_transcript>{transcript}</user_transcript>\n\n"
-                    f"<ai_feedback>{ai_feedback}</ai_feedback>"
+                    f"<ai_input>{ai_input}</ai_input>\n\n<ai_feedback>{ai_feedback}</ai_feedback>"
                 ),
             },
         ],
@@ -272,14 +270,8 @@ async def get_feedback(
         f"{text_analysis}*only bolded keywords are mentioned during the recording\n\n"
         f"## Style Coaching Recommendations\n\n{speech_analysis}"
     )
-    # await judge_feedback(
-    #     transcript=audio_analysis.transcript,
-    #     script_details=script_details,
-    #     ai_feedback=final_feedback,
-    #     session_id=session_id,
-    # )
 
-    final_trace_id = langfuse_log(
+    langfuse_log(
         session_id=session_id,
         trace_name="final-feedback",
         message=final_feedback,
@@ -287,9 +279,15 @@ async def get_feedback(
         tags=tags,
     )
 
+    confidence_score = (
+        0
+        if not keyword_equivalents.transcript_matches_lesson
+        else audio_analysis.confidence_score
+    )
+
     return (
         final_feedback,
         average_score,
-        audio_analysis.confidence_score,
-        final_trace_id,
+        confidence_score,
+        session_id,
     )

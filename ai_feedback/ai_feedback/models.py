@@ -22,12 +22,16 @@ class FeedbackResponse(BaseModel):
     feedback: str
     accuracy: int
     confidence: int
-    final_trace_id: str
+    session_id: str
 
 
 class UserLikeRequest(BaseModel):
-    trace_id: str
+    session_id: str
     positive_feedback: bool
+
+
+class LangfuseTracesRequest(BaseModel):
+    session_id: str
 
 
 class AudioAnalysis(BaseModel):
@@ -38,10 +42,9 @@ class AudioAnalysis(BaseModel):
         description="Comprehensive analysis of the vocal style of the speaker"
     )
     confidence_score: int = Field(
-        description="""Score assessing the overall quality of the speech. Can have one of 3 values:
-        - 0, which means the speaker didn't even talk or was extremely unsure of himself
-        - 50, which means the speaker was moderately confident, had moments of doubt, unusual pauses, filler words etc.
-        - 100, which means the speaker proved his knowledge of the material, was eloquent and easy to trust
+        description="""Score assessing the overall quality of the speech. Can have one of 2 values:
+        - 50, which means the speaker was extremely unsure of himself, he didn't really know the material
+        - 100, which means the speaker was moderately confident or confident, even if he had moments of doubt, unusual pauses, filler words etc.
         """
     )
 

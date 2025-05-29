@@ -41,10 +41,21 @@ def langfuse_log(
     return trace.trace_id
 
 
-def langfuse_user_like(trace_id: str, positive_feedback: bool):
+def langfuse_user_like(session_id: str, positive_feedback: bool):
+    traces = lf.fetch_traces(session_id=session_id, order_by="timestamp.asc")
+    output_trace_id = str(traces.data[3].id)
+
     lf.score(
-        trace_id=trace_id,
+        trace_id=output_trace_id,
         name="User Opinion",
         data_type="CATEGORICAL",
         value="Like" if positive_feedback else "Dislike",
     )
+
+
+def fetch_feedback_input_output(session_id: str) -> tuple[str, str]:
+    traces = lf.fetch_traces(session_id=session_id, order_by="timestamp.asc")
+    ai_input = str(traces.data[1].input["messages"][1]["content"])  # pyright: ignore
+    ai_feedback = str(traces.data[3].output)
+
+    return ai_input, ai_feedback

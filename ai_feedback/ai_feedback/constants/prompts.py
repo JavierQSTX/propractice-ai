@@ -40,10 +40,15 @@ Important notes:
 - Each dimension of the style analysis  should have {max_words_per_speech_dimension} words or less.
 - Try to avoid directly labelling the student's speech pattern with negative words like
 "dull" or "boring"; remember your purpose is to coach him in an encouraging, yet realistic manner
-- Here's a good and a bad example of what kind of phrases you should use in your analysis:
+- Here are some good and bad examples of what kind of phrases you should use in your analysis:
+
 Bad: "There's room to deepen the emotional connection to the content." -> too generic, unnatural phrasing
 Good: "When discussing the embarrassment a customer might face, conveying empathy through your tone can
 create a stronger impact." -> grounded in the situation, offers concrete advice
+
+Bad: "Use bold pauses to emphasise impactful phrases" -> could apply to any transcript, no examples given
+Good: "Try adding some bold pauses before the key phrases 'wasted money' and 'guaranteed dividends'" -> grounded in
+the situation, mentions words from the script
 """
 
 
@@ -163,7 +168,7 @@ e.g.: "Do you have (Amount of Time) to talk?" should match with "Could we discus
 JUDGE_FEEDBACK_PROMPT = """
 You are evaluating an AI-generated feedback given to a user's spoken response.
 
-You will received:
+You will receive:
 - Lesson details - an explanation of the scenario, key elements the user has to cover and key words that
 have to be mentioned either directly or through synonyms and other formulations
 - user's response transcript - transcript of the full user response; the speech-to-text is not perfect,
@@ -178,10 +183,9 @@ Task:
 
 Respond with:
 - Accuracy issues
-- Style coaching effectiveness
 - Suspected root cause of dissatisfaction
-- Improved version of feedback (if relevant)
 
+Keep your answer under 200-250 words
 """
 
 SPEECH_ANALYSIS_SKIPPED = "Style Assessment skipped, make sure the uploaded video matches the challenge scenario."
