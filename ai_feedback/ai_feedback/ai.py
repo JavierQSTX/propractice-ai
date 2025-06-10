@@ -170,7 +170,7 @@ async def get_text_analysis(
 
     for script, keywords in matching_keywords.items():
         # replacing script with list of bold-formatted keywords
-        text_analysis = text_analysis.replace(script, f"- {', '.join(keywords)}")
+        text_analysis = text_analysis.replace(script, "- " + " \| ".join(keywords))
 
     return text_analysis
 
