@@ -79,7 +79,7 @@ feedback_input = {
                 "implementing",
                 "way to",
                 "understand",
-                "current and future financial needs",
+                "current, and future financial needs",
                 "look for all",
                 "ways",
                 "be helpful",
