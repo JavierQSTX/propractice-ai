@@ -52,7 +52,7 @@ class AudioAnalysis(BaseModel):
 class KeywordMapping(BaseModel):
     keyword: str = Field(description="The required keyword")
     transcript_equivalent: str = Field(
-        default=None,
+        None,
         description="Exact match or equivalent formulation, if found in the transcript",
     )
 
