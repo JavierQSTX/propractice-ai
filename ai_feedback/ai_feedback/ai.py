@@ -170,9 +170,13 @@ async def get_text_analysis(
 
     for script, keywords in matching_keywords.items():
         # replacing script with list of bold-formatted keywords
+<<<<<<< HEAD
         keywords = (keyword.replace(",", "").strip() for keyword in keywords)
         keywords = (keyword for keyword in keywords if keyword)
         text_analysis = text_analysis.replace(script, "- " + " \| ".join(keywords))
+=======
+        text_analysis = text_analysis.replace(script, f"- {', '.join(keywords)}")
+>>>>>>> parent of f701231 (Changed keyword separation symbol to |, updated formatting for 4 column recommendation prompt)
 
     return text_analysis
 
