@@ -60,7 +60,7 @@ def get_scores_and_matching_keywords(
         score = 0
         key_words = []
         for mapping in key_element.keywords_with_equivalents:
-            if mapping.transcript_equivalent is None or mapping.transcript_equivalent == "":
+            if mapping.transcript_equivalent == "":
                 key_words.append(mapping.keyword)
             else:
                 score += 1
