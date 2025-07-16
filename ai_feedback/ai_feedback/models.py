@@ -51,8 +51,8 @@ class AudioAnalysis(BaseModel):
 
 class KeywordMapping(BaseModel):
     keyword: str = Field(description="The required keyword")
-    transcript_equivalent: str | None = Field(
-        None,
+    transcript_equivalent: str = Field(
+        default="",
         description="Exact match or equivalent formulation, if found in the transcript",
     )
 
