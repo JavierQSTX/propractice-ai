@@ -5,8 +5,8 @@ import os
 
 load_dotenv(override=True)
 
-# url = "https://my-fastapi-service-140249299005.us-central1.run.app"
-url = "http://0.0.0.0:8080"
+url = "https://my-fastapi-service-140249299005.us-central1.run.app"
+# url = "http://0.0.0.0:8080"
 login_url = f"{url}/login"
 feedback_url = f"{url}/feedback"
 judge_url = f"{url}/judge"
@@ -119,21 +119,21 @@ files = {
         "video/mp4",
     ),
 }
-# data = {"feedback_input_str": json.dumps(feedback_input)}
+data = {"feedback_input_str": json.dumps(feedback_input)}
 
-# response = requests.post(feedback_url, files=files, data=data, headers=headers)
-# print(response.json()["feedback"])
-# print(response.json()["accuracy"])
-# print(response.json()["confidence"])
+response = requests.post(feedback_url, files=files, data=data, headers=headers)
+print(response.json()["feedback"])
+print(response.json()["accuracy"])
+print(response.json()["confidence"])
 
-data = {
-    "session_id": "77bac4f8-e28a-45a6-9254-9a18902914b5",
-    "positive_feedback": False,
-}
+# data = {
+#     "session_id": "77bac4f8-e28a-45a6-9254-9a18902914b5",
+#     "positive_feedback": False,
+# }
 
-judge_url = f"{url}/like"
-response = requests.post(judge_url, json=data, headers=headers)
+# judge_url = f"{url}/like"
+# response = requests.post(judge_url, json=data, headers=headers)
 
-from pprint import pprint
+# from pprint import pprint
 
-pprint(response.json())
+# pprint(response.json())

@@ -12,7 +12,7 @@ start-server: build
 		propractice-ai:local
 
 send-request:
-	python ./scripts/send_request.py
+	poetry run python ./scripts/send_request.py
 
 deploy: generate-requirements
 	./scripts/deploy.sh

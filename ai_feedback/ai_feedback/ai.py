@@ -60,8 +60,8 @@ def get_scores_and_matching_keywords(
         score = 0
         key_words = []
         for mapping in key_element.keywords_with_equivalents:
-            if mapping.transcript_equivalent == "":
-                key_words.append(mapping.keyword)
+            if mapping.transcript_equivalent == "None":
+                continue
             else:
                 score += 1
                 key_words.append(f"**{mapping.keyword}**")
@@ -244,9 +244,10 @@ async def get_feedback(
         script_details=script_details,
         session_id=session_id,
     )
+    logger.info(f"Keyword equivalents: {keyword_equivalents}")
     scores, matching_keywords = get_scores_and_matching_keywords(keyword_equivalents)
     logger.info(f"Scores: {scores}")
-    logger.info(f"Matching keywords: {matching_keywords}")
+    logger.info(f"Matched keywords: {matching_keywords}")
 
     try:
         average_score = int(sum(scores.values()) / len(scores))
