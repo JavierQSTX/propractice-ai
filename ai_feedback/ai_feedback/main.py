@@ -34,7 +34,7 @@ import asyncio
 app = FastAPI()
 
 
-origins = ["http://localhost", "http://localhost:3000", "https://cbway.com"]
+origins = ["http://localhost", "http://localhost:3000", "https://cbway.com", "https://*.cbway.com"]
 
 app.add_middleware(
     CORSMiddleware,
