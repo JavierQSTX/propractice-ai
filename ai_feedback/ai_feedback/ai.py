@@ -2,6 +2,7 @@ from langfuse.openai import AsyncOpenAI
 from loguru import logger
 import base64
 import instructor
+from typing import List
 from ai_feedback.constants.prompts import (
     AUDIO_ANALYSIS_PROMPT,
     TEXT_ANALYSIS_PROMPT,
@@ -179,7 +180,8 @@ async def get_text_analysis(
 async def get_keyword_equivalents(
     *, transcript: str, script_details: ScriptDetails, session_id: str
 ) -> LessonDetailsExtractedKeywords:
-    keyword_equivalents = await instructor_client.chat.completions.create(
+    # Use List[Model] to handle instructor's multiple tool calls limitation
+    keyword_equivalents_list = await instructor_client.chat.completions.create(
         model=settings.ai_model_name,
         modalities=["text"],
         messages=[
@@ -193,13 +195,14 @@ async def get_keyword_equivalents(
             },
         ],
         session_id=session_id,
-        response_model=LessonDetailsExtractedKeywords,
+        response_model=List[LessonDetailsExtractedKeywords],
     )
 
-    if keyword_equivalents is None:
-        raise RuntimeError("External API call failed: received None")
+    if keyword_equivalents_list is None or len(keyword_equivalents_list) == 0:
+        raise RuntimeError("External API call failed: received None or empty list")
 
-    return keyword_equivalents
+    # Return the first (and should be only) item from the list
+    return keyword_equivalents_list[0]
 
 
 async def judge_feedback(
