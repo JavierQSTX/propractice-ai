@@ -239,22 +239,81 @@ async def get_keyword_equivalents(
                 },
             ],
             session_id=session_id,
-            response_format={"type": "json_object"}
+            response_format={"type": "json_object"},
+            max_tokens=40000,  # Add max tokens to prevent truncation
         )
 
         if response.choices[0].message.content is None:
             raise RuntimeError("External API call failed: received None")
 
+        raw_content = response.choices[0].message.content.strip()
+        logger.info(f"Raw AI response length: {len(raw_content)}")
+        logger.info(f"Raw AI response (first 200 chars): {raw_content[:200]}")
+        
         try:
             import json
-            json_response = json.loads(response.choices[0].message.content)
+            
+            # Clean up the JSON response
+            cleaned_content = raw_content
+            
+            # Remove any markdown code blocks if present
+            if cleaned_content.startswith("```json"):
+                cleaned_content = cleaned_content[7:]
+            elif cleaned_content.startswith("```"):
+                cleaned_content = cleaned_content[3:]
+            
+            if cleaned_content.endswith("```"):
+                cleaned_content = cleaned_content[:-3]
+            
+            cleaned_content = cleaned_content.strip()
+            
+            # Try to find the JSON object if there's extra text
+            start_idx = cleaned_content.find('{')
+            end_idx = cleaned_content.rfind('}')
+            
+            if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                cleaned_content = cleaned_content[start_idx:end_idx + 1]
+            
+            logger.info(f"Cleaned JSON content: {cleaned_content[:200]}...")
+            
+            json_response = json.loads(cleaned_content)
             keyword_equivalents = LessonDetailsExtractedKeywords(**json_response)
             logger.info("Successfully parsed JSON response from fallback")
             return keyword_equivalents
+            
         except (json.JSONDecodeError, ValueError, TypeError) as parse_error:
             logger.error(f"Failed to parse JSON response: {parse_error}")
-            logger.error(f"Raw response: {response.choices[0].message.content}")
-            raise RuntimeError(f"Failed to parse AI response: {parse_error}")
+            logger.error(f"Raw response: {raw_content}")
+            logger.error(f"Cleaned content: {cleaned_content if 'cleaned_content' in locals() else 'Not available'}")
+            
+            # Try to create a fallback response with minimal data
+            try:
+                # Extract key elements from script_details to create a fallback
+                fallback_scripts = []
+                for key_element in script_details.keyElements:
+                    fallback_keywords = []
+                    for keyword in key_element.keywords:
+                        fallback_keywords.append({
+                            "keyword": keyword,
+                            "transcript_equivalent": "None"
+                        })
+                    
+                    fallback_scripts.append({
+                        "script": key_element.script,
+                        "keywords_with_equivalents": fallback_keywords
+                    })
+                
+                fallback_response = {
+                    "scripts": fallback_scripts,
+                    "transcript_matches_lesson": False
+                }
+                
+                logger.info("Created fallback response due to JSON parsing failure")
+                return LessonDetailsExtractedKeywords(**fallback_response)
+                
+            except Exception as fallback_error:
+                logger.error(f"Fallback response creation failed: {fallback_error}")
+                raise RuntimeError(f"Failed to parse AI response and create fallback: {parse_error}")
 
 
 async def judge_feedback(
