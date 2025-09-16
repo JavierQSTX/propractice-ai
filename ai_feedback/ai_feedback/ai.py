@@ -169,6 +169,18 @@ async def get_text_analysis(
     if text_analysis is None:
         raise RuntimeError("External API call failed: received None")
 
+    # Clean up markdown code blocks if the AI wrapped the response in them
+    text_analysis = text_analysis.strip()
+    if text_analysis.startswith("```markdown"):
+        text_analysis = text_analysis[11:]  # Remove ```markdown
+    elif text_analysis.startswith("```"):
+        text_analysis = text_analysis[3:]   # Remove ```
+    
+    if text_analysis.endswith("```"):
+        text_analysis = text_analysis[:-3]  # Remove trailing ```
+    
+    text_analysis = text_analysis.strip()
+
     for script, keywords in matching_keywords.items():
         # replacing script with list of bold-formatted keywords
         # text_analysis = text_analysis.replace(script, f"- {', '.join(keywords)}")
