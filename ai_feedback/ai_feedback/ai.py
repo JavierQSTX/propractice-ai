@@ -78,9 +78,9 @@ def get_scores_and_matching_keywords(
         logger.info(f"Script '{key_element.script[:30]}...': {score}/{total} matches = {scores[key_element.script]}%")
 
     # If transcript doesn't match lesson, override scores to 0 but keep the matching keywords for display
-    if not keyword_equivalents.transcript_matches_lesson:
-        logger.info("Transcript doesn't match lesson - setting all scores to 0")
-        scores = {script: 0 for script in scores.keys()}
+    # if not keyword_equivalents.transcript_matches_lesson:
+        # logger.info("Transcript doesn't match lesson - setting all scores to 0")
+        # scores = {script: 0 for script in scores.keys()}
 
     return scores, matching_keywords
 
