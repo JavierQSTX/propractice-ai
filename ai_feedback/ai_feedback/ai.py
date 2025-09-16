@@ -180,29 +180,69 @@ async def get_text_analysis(
 async def get_keyword_equivalents(
     *, transcript: str, script_details: ScriptDetails, session_id: str
 ) -> LessonDetailsExtractedKeywords:
-    # Use List[Model] to handle instructor's multiple tool calls limitation
-    keyword_equivalents_list = await instructor_client.chat.completions.create(
-        model=settings.ai_model_name,
-        modalities=["text"],
-        messages=[
-            {"role": "developer", "content": EXTRACT_KEYWORDS_PROMPT},
-            {
-                "role": "user",
-                "content": (
-                    f"<transcript>{transcript}</transcript>\n\n"
-                    f"<lesson_details>{script_details}</lesson_details>"
-                ),
-            },
-        ],
-        session_id=session_id,
-        response_model=List[LessonDetailsExtractedKeywords],
-    )
+    try:
+        # Try with the single model first (revert from List approach)
+        keyword_equivalents = await instructor_client.chat.completions.create(
+            model=settings.ai_model_name,
+            modalities=["text"],
+            messages=[
+                {"role": "developer", "content": EXTRACT_KEYWORDS_PROMPT},
+                {
+                    "role": "user",
+                    "content": (
+                        f"<transcript>{transcript}</transcript>\n\n"
+                        f"<lesson_details>{script_details}</lesson_details>"
+                    ),
+                },
+            ],
+            session_id=session_id,
+            response_model=LessonDetailsExtractedKeywords,
+            max_retries=1,
+        )
 
-    if keyword_equivalents_list is None or len(keyword_equivalents_list) == 0:
-        raise RuntimeError("External API call failed: received None or empty list")
+        if keyword_equivalents is None:
+            raise RuntimeError("Instructor client returned None")
 
-    # Return the first (and should be only) item from the list
-    return keyword_equivalents_list[0]
+        return keyword_equivalents
+
+    except Exception as instructor_error:
+        logger.warning(f"Instructor client failed: {instructor_error}")
+        logger.info("Falling back to regular OpenAI client with JSON parsing")
+        
+        # Fallback to regular OpenAI client with JSON response
+        response = await client.chat.completions.create(
+            model=settings.ai_model_name,
+            modalities=["text"],
+            messages=[
+                {
+                    "role": "developer", 
+                    "content": EXTRACT_KEYWORDS_PROMPT + "\n\nIMPORTANT: Return your response as valid JSON that matches this exact structure: {\"scripts\": [{\"script\": \"string\", \"keywords_with_equivalents\": [{\"keyword\": \"string\", \"transcript_equivalent\": \"string or None\"}]}], \"transcript_matches_lesson\": boolean}"
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        f"<transcript>{transcript}</transcript>\n\n"
+                        f"<lesson_details>{script_details}</lesson_details>"
+                    ),
+                },
+            ],
+            session_id=session_id,
+            response_format={"type": "json_object"}
+        )
+
+        if response.choices[0].message.content is None:
+            raise RuntimeError("External API call failed: received None")
+
+        try:
+            import json
+            json_response = json.loads(response.choices[0].message.content)
+            keyword_equivalents = LessonDetailsExtractedKeywords(**json_response)
+            logger.info("Successfully parsed JSON response from fallback")
+            return keyword_equivalents
+        except (json.JSONDecodeError, ValueError, TypeError) as parse_error:
+            logger.error(f"Failed to parse JSON response: {parse_error}")
+            logger.error(f"Raw response: {response.choices[0].message.content}")
+            raise RuntimeError(f"Failed to parse AI response: {parse_error}")
 
 
 async def judge_feedback(
