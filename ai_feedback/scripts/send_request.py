@@ -5,8 +5,8 @@ import os
 
 load_dotenv(override=True)
 
-url = "https://my-fastapi-service-140249299005.us-central1.run.app"
-# url = "http://0.0.0.0:8080"
+# url = "https://my-fastapi-service-140249299005.us-central1.run.app"
+url = "http://0.0.0.0:8080"
 login_url = f"{url}/login"
 feedback_url = f"{url}/feedback"
 judge_url = f"{url}/judge"
@@ -45,72 +45,12 @@ headers = {"Authorization": f"Bearer {bearer_token}"}
 # }
 
 
-VIDEO_FILENAME = "module_2/Challenge 3 bad recording.mp4"
+VIDEO_FILENAME = "video_68c9b75d32d44.mp4"
 # VIDEO_FILENAME = "module_2/challenge 3 good recroding.mp4"
 # VIDEO_FILENAME = "module_2/Challenge 3 Synonyms.mp4"
 
 
-feedback_input = {
-    "challenge": 3,
-    "tags": ["test1", "test2"],
-    "user_id": "my_test_user_id",
-    "question": "You are speaking with an existing Member. What should you say to transition into the Member Financial Review?",
-    "briefing": "By learning and practicing with this ProPractice module, you will increase your confidence and success in presenting the Member with a compelling entry line when you are seeking to conduct a Member Review. • Transitioning After the Use of a Tag-On • New Member Entry Line • Existing Member Entry Line • Transitioning to the Member Financial Review After Problem Resolution",
-    "keyElements": [
-        {
-            "script": "Thank you for being a River City Federal Credit Union Member , we appreciate the opportunity to serve you.",
-            "keywords": ["Thank you"],
-        },
-        {
-            "script": "It's my responsibility to help Members achieve their financial goals and make their banking more convenient",
-            "keywords": [
-                "My responsability",
-                "help Members achieve",
-                "financial goals",
-                "make banking",
-                "convenient",
-            ],
-        },
-        {
-            "script": "Circumstances for our Members typically change over time, and we are implementing a way to better understand their current and future financial needs, and look for all the ways to be helpful to them.",
-            "keywords": [
-                "Circumstances",
-                "change over time",
-                "implementing",
-                "way to",
-                "understand",
-                "current, and future financial needs",
-                "look for all",
-                "ways",
-                "be helpful",
-            ],
-        },
-        {
-            "script": "I have helped others save time and money, and I would like to ask you a few questions to see if we can do the same for you.",
-            "keywords": [
-                "helped others save time and money",
-                "ask",
-                "a few questions",
-                "see if",
-                "can do",
-                "same for you",
-                ", ",
-            ],
-        },
-        {
-            "script": "it is a complimentary service we provide and, of course, everything will remain confidential.",
-            "keywords": ["complimentary service", "confidential"],
-        },
-        {
-            "script": "This usually takes only about 10 – 15 minutes.",
-            "keywords": ["about 10 – 15 minutes"],
-        },
-        {
-            "script": "I'd like to get started right now.",
-            "keywords": ["get started", "now"],
-        },
-    ],
-}
+feedback_input = {"challenge":"3","question":"Check Balance in Account","briefing":"In this module you will learn what to say when hearing a variety of clues.● Rate inquiry  ● Check Balance in Account ● High balance in savings ● CD maturing in the next month","keyElements":[{"script":" Yes, I am happy to check the balance for you. ","keywords":["Yes,","happy","check","balance"]},{"script":" But I want to ensure you know that there are other easy ways to check your balance ","keywords":["other easy ways","check","balance"]},{"script":" In addition to using our ATM, you are also able to check your balance, ","keywords":["addition","ATM,","check","balance,"]},{"script":" Anytime, and virtually anywhere through our convenient online banking, and mobile banking. ","keywords":["Anytime,","anywhere through","convenient on","line",",","mobile banking"]},{"script":" I'd like to help you with this now if you would like to get started.","keywords":["help","now"]}],"user_id":"LID--fff108e0b0682e0d2e0108a875739904","tags":["Check Balance in Account","Perfect Hour for Operations"]}
 
 files = {
     "video": (
