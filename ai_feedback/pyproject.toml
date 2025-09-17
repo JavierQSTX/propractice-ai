@@ -6,7 +6,7 @@ authors = ["Danut Matei <danut.matei@stxnext.pl>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = " <3.14,>=3.10"
 python-multipart = "^0.0.20"
 fastapi = "^0.115.12"
 uvicorn = "^0.34.1"
@@ -15,8 +15,10 @@ pydantic-settings = "^2.8.1"
 pypdf2 = "^3.0.1"
 openai = "^1.74.0"
 loguru = "^0.7.3"
-langfuse = "^2.60.3"
+langfuse = "3.4.0"
 python-jose = {extras = ["cryptography"], version = "^3.4.0"}
+google-genai = "1.38.0"
+openinference-instrumentation-google-genai = "0.1.5"
 instructor = "^1.7.9"
 
 

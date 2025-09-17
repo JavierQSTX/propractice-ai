@@ -19,7 +19,6 @@ from ai_feedback.utils import (
     lf,
     read_audio,
     generate_session_id,
-    langfuse_log,
 )
 from ai_feedback.models import (
     ScriptDetails,
@@ -27,12 +26,20 @@ from ai_feedback.models import (
     LessonDetailsExtractedKeywords,
 )
 
+from openinference.instrumentation.google_genai import GoogleGenAIInstrumentor
+
+from langfuse import get_client
+langfuse = get_client()
+GoogleGenAIInstrumentor().instrument()
+
 client = AsyncOpenAI(
     api_key=settings.ai_api_key,
     base_url=settings.ai_base_url,
 )
 instructor_client = instructor.from_openai(client)
 
+from google import genai
+genai_client = genai.Client(api_key=settings.ai_api_key)
 
 def get_scores_and_matching_keywords(
     keyword_equivalents: LessonDetailsExtractedKeywords,
@@ -106,7 +113,6 @@ async def get_audio_analysis(audio: bytes, session_id: str) -> AudioAnalysis:
             },
         ],
         response_model=AudioAnalysis,
-        session_id=session_id,
     )
 
     if audio_analysis is None:
@@ -161,7 +167,6 @@ async def get_text_analysis(
                 ),
             },
         ],
-        session_id=session_id,
     )
 
     text_analysis = response.choices[0].message.content
@@ -179,27 +184,26 @@ async def get_text_analysis(
 async def get_keyword_equivalents(
     *, transcript: str, script_details: ScriptDetails, session_id: str
 ) -> LessonDetailsExtractedKeywords:
-    keyword_equivalents = await instructor_client.chat.completions.create(
+    
+    logger.info(f"Before calling instructor_client")
+    keyword_equivalents = genai_client.models.generate_content(
         model=settings.ai_model_name,
-        modalities=["text"],
-        messages=[
-            {"role": "developer", "content": EXTRACT_KEYWORDS_PROMPT},
-            {
-                "role": "user",
-                "content": (
-                    f"<transcript>{transcript}</transcript>\n\n"
-                    f"<lesson_details>{script_details}</lesson_details>"
-                ),
-            },
+        contents=[
+            EXTRACT_KEYWORDS_PROMPT,
+            f"<transcript>{transcript}</transcript>\n\n <lesson_details>{script_details}</lesson_details>"
         ],
-        session_id=session_id,
-        response_model=LessonDetailsExtractedKeywords,
+        config={
+            "response_mime_type": "application/json",
+            "response_schema": LessonDetailsExtractedKeywords,
+        }
     )
+    # log keyword_equivalents
+    logger.info(f"Keyword equivalents: {keyword_equivalents}")
 
     if keyword_equivalents is None:
         raise RuntimeError("External API call failed: received None")
-
-    return keyword_equivalents
+    
+    return keyword_equivalents.parsed
 
 
 async def judge_feedback(
@@ -217,7 +221,6 @@ async def judge_feedback(
                 ),
             },
         ],
-        session_id=session_id,
     )
 
     judged_feedback = response.choices[0].message.content
@@ -271,14 +274,6 @@ async def get_feedback(
     final_feedback = (
         f"{text_analysis}*only bolded keywords are mentioned during the recording\n\n"
         f"## Style Coaching Recommendations\n\n{speech_analysis}"
-    )
-
-    langfuse_log(
-        session_id=session_id,
-        trace_name="final-feedback",
-        message=final_feedback,
-        user_id=user_id,
-        tags=tags,
     )
 
     confidence_score = (
