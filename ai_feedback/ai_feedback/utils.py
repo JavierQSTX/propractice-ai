@@ -1,3 +1,4 @@
+import uuid
 import subprocess
 from uuid import uuid4
 from langfuse import Langfuse
