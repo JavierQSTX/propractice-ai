@@ -82,7 +82,7 @@ async def generate_feedback(
         # Save video file
         video_filename = f"/tmp/{uuid.uuid4()}_{video.filename}"
         with open(video_filename, "wb") as f:
-            f.write(await video.read())
+            f.write(video_content)
 
         audio_filename = convert_video_to_audio(video_filename)
 
