@@ -29,6 +29,7 @@ from ai_feedback.utils import (
 from ai_feedback.config import settings
 from ai_feedback.authentication import verify_token, create_access_token
 import asyncio
+import base64
 
 
 app = FastAPI()
