@@ -1,34 +1,41 @@
+import base64
+import time
+
+import instructor
+from langfuse import get_client
 from langfuse.openai import AsyncOpenAI
 from loguru import logger
-import base64
-import instructor
+from openinference.instrumentation.google_genai import GoogleGenAIInstrumentor
+
+from ai_feedback.config import settings
+from ai_feedback.constants.conditional_prompts import COACHING_RECOMMENDATIONS_PROMPTS
+from ai_feedback.constants.fallback_prompts import (
+    FALLBACK_INCLUDE_COACHING_RECOMMENDATIONS,
+    FALLBACK_MAX_WORDS_PER_SPEECH_DIMENSION,
+)
 from ai_feedback.constants.prompts import (
     AUDIO_ANALYSIS_PROMPT,
     TEXT_ANALYSIS_PROMPT,
     EXTRACT_KEYWORDS_PROMPT,
     JUDGE_FEEDBACK_PROMPT,
     SPEECH_ANALYSIS_SKIPPED,
-)
-from ai_feedback.constants.fallback_prompts import (
-    FALLBACK_INCLUDE_COACHING_RECOMMENDATIONS,
-    FALLBACK_MAX_WORDS_PER_SPEECH_DIMENSION,
-)
-from ai_feedback.constants.conditional_prompts import COACHING_RECOMMENDATIONS_PROMPTS
-from ai_feedback.config import settings
-from ai_feedback.utils import (
-    lf,
-    read_audio,
-    generate_session_id,
+    VIDEO_ANALYSIS_PROMPT,
 )
 from ai_feedback.models import (
     ScriptDetails,
     AudioAnalysis,
     LessonDetailsExtractedKeywords,
 )
+from ai_feedback.utils import (
+    lf,
+    read_audio,
+    generate_session_id,
+)
 
-from openinference.instrumentation.google_genai import GoogleGenAIInstrumentor
+MAX_ITERATIONS = 30        # e.g. ~60 seconds total
+SLEEP_SECONDS = 2
 
-from langfuse import get_client
+
 langfuse = get_client()
 GoogleGenAIInstrumentor().instrument()
 
@@ -119,6 +126,67 @@ async def get_audio_analysis(audio: bytes, session_id: str) -> AudioAnalysis:
         raise RuntimeError("External API call failed: received None")
 
     return audio_analysis
+
+
+async def get_video_analysis(video_filename: str, session_id: str) -> AudioAnalysis:
+    """
+    Analyze video using Gemini 3.0's multimodal capabilities.
+    Uploads video to File API and processes both audio and visual streams.
+    Returns AudioAnalysis structure for compatibility with existing pipeline.
+    """
+    logger.info(f"Uploading video file: {video_filename}")
+    
+    myfile = genai_client.files.upload(file=video_filename)
+    logger.info(f"Video uploaded with URI: {myfile.uri}")
+
+    for i in range(MAX_ITERATIONS):
+        if myfile.state.name != "PROCESSING":
+            break
+
+        logger.info(f"Waiting for video processing... ({i + 1}/{MAX_ITERATIONS})")
+        time.sleep(SLEEP_SECONDS)
+        myfile = genai_client.files.get(name=myfile.name)
+    else:
+        raise TimeoutError("File processing timed out")
+    
+    if myfile.state.name == "FAILED":
+        raise RuntimeError(f"Video processing failed: {myfile.state}")
+    
+    logger.info("Video processing complete, generating analysis...")
+    
+    max_words_per_speech_dimension = lf.get_prompt(
+        "max-words-per-speech-dimension",
+        label="production",
+        fallback=FALLBACK_MAX_WORDS_PER_SPEECH_DIMENSION,
+    ).prompt
+    
+    response = genai_client.models.generate_content(
+        model="gemini-3-flash-preview",
+        contents=[
+            VIDEO_ANALYSIS_PROMPT.format(
+                max_words_per_speech_dimension=max_words_per_speech_dimension
+            ),
+            myfile,
+        ],
+        config={
+            "response_mime_type": "application/json",
+            "response_schema": AudioAnalysis,
+        }
+    )
+    
+    logger.info(f"Video analysis response: {response}")
+    
+    if response.parsed is None:
+        raise RuntimeError("External API call failed: received None")
+    
+    try:
+        genai_client.files.delete(name=myfile.name)
+        logger.info(f"Deleted uploaded file: {myfile.name}")
+    except Exception as e:
+        logger.warning(f"Failed to delete uploaded file: {e}")
+    
+    return response.parsed
+
 
 
 async def get_text_analysis(
@@ -288,3 +356,69 @@ async def get_feedback(
         confidence_score,
         session_id,
     )
+
+
+async def get_feedback_from_video(
+    *,
+    video_filename: str,
+    script_details: ScriptDetails,
+    user_id: str | None,
+    tags: list[str] | None,
+) -> tuple[str, int, int, str]:
+    """
+    Generate feedback from video using Gemini's multimodal capabilities.
+    This function processes video directly without converting to audio first.
+    """
+    session_id = generate_session_id()
+    logger.info(f"Lesson details: {script_details}")
+    logger.info(f"Processing video file: {video_filename}")
+
+    # Analyze video using multimodal model
+    video_analysis = await get_video_analysis(video_filename, session_id)
+
+    keyword_equivalents = await get_keyword_equivalents(
+        transcript=video_analysis.transcript,
+        script_details=script_details,
+        session_id=session_id,
+    )
+    logger.info(f"Keyword equivalents: {keyword_equivalents}")
+    scores, matching_keywords = get_scores_and_matching_keywords(keyword_equivalents)
+    logger.info(f"Scores: {scores}")
+    logger.info(f"Matched keywords: {matching_keywords}")
+
+    try:
+        average_score = int(sum(scores.values()) / len(scores))
+    except ZeroDivisionError:
+        average_score = 0
+
+    text_analysis = await get_text_analysis(
+        transcript=video_analysis.transcript,
+        script_details=script_details,
+        scores=scores,
+        matching_keywords=matching_keywords,
+        session_id=session_id,
+    )
+    speech_analysis = (
+        SPEECH_ANALYSIS_SKIPPED
+        if not keyword_equivalents.transcript_matches_lesson
+        else video_analysis.speaking_style_analysis
+    )
+
+    final_feedback = (
+        f"{text_analysis}*only bolded keywords are mentioned during the recording\\n\\n"
+        f"## Style Coaching Recommendations\\n\\n{speech_analysis}"
+    )
+
+    confidence_score = (
+        0
+        if not keyword_equivalents.transcript_matches_lesson
+        else video_analysis.confidence_score
+    )
+
+    return (
+        final_feedback,
+        average_score,
+        confidence_score,
+        session_id,
+    )
+
