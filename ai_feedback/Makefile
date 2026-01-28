@@ -16,3 +16,6 @@ send-request:
 
 deploy: generate-requirements
 	./scripts/deploy.sh
+
+deploy-dev: generate-requirements
+	./scripts/deploy-dev.sh
