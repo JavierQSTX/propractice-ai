@@ -50,7 +50,42 @@ VIDEO_FILENAME = "video_68c9b75d32d44.mp4"
 # VIDEO_FILENAME = "module_2/Challenge 3 Synonyms.mp4"
 
 
-feedback_input = {"challenge":"3","question":"Check Balance in Account","briefing":"In this module you will learn what to say when hearing a variety of clues.● Rate inquiry  ● Check Balance in Account ● High balance in savings ● CD maturing in the next month","keyElements":[{"script":" Yes, I am happy to check the balance for you. ","keywords":["Yes,","happy","check","balance"]},{"script":" But I want to ensure you know that there are other easy ways to check your balance ","keywords":["other easy ways","check","balance"]},{"script":" In addition to using our ATM, you are also able to check your balance, ","keywords":["addition","ATM,","check","balance,"]},{"script":" Anytime, and virtually anywhere through our convenient online banking, and mobile banking. ","keywords":["Anytime,","anywhere through","convenient on","line",",","mobile banking"]},{"script":" I'd like to help you with this now if you would like to get started.","keywords":["help","now"]}],"user_id":"LID--fff108e0b0682e0d2e0108a875739904","tags":["Check Balance in Account","Perfect Hour for Operations"]}
+feedback_input = {
+    "challenge": "3",
+    "question": "Check Balance in Account",
+    "briefing": "In this module you will learn what to say when hearing a variety of clues.● Rate inquiry  ● Check Balance in Account ● High balance in savings ● CD maturing in the next month",
+    "keyElements": [
+        {
+            "script": " Yes, I am happy to check the balance for you. ",
+            "keywords": ["Yes,", "happy", "check", "balance"],
+        },
+        {
+            "script": " But I want to ensure you know that there are other easy ways to check your balance ",
+            "keywords": ["other easy ways", "check", "balance"],
+        },
+        {
+            "script": " In addition to using our ATM, you are also able to check your balance, ",
+            "keywords": ["addition", "ATM,", "check", "balance,"],
+        },
+        {
+            "script": " Anytime, and virtually anywhere through our convenient online banking, and mobile banking. ",
+            "keywords": [
+                "Anytime,",
+                "anywhere through",
+                "convenient on",
+                "line",
+                ",",
+                "mobile banking",
+            ],
+        },
+        {
+            "script": " I'd like to help you with this now if you would like to get started.",
+            "keywords": ["help", "now"],
+        },
+    ],
+    "user_id": "LID--fff108e0b0682e0d2e0108a875739904",
+    "tags": ["Check Balance in Account", "Perfect Hour for Operations"],
+}
 
 files = {
     "video": (
