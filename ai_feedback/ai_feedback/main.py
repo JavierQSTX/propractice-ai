@@ -86,7 +86,16 @@ async def generate_feedback(
 
         audio_filename = convert_video_to_audio(video_filename)
 
-        feedback, average_score, confidence_score, session_id = await get_feedback(
+        (
+            feedback,
+            average_score,
+            confidence_score,
+            rhythm_timing,
+            volume_tone,
+            emotional_authenticity,
+            confidence_detail,
+            session_id,
+        ) = await get_feedback(
             audio_filename=audio_filename,
             script_details=script_details,
             user_id=feedback_input.user_id,
@@ -96,6 +105,10 @@ async def generate_feedback(
             feedback=feedback,
             accuracy=average_score,
             confidence=confidence_score,
+            rhythm_timing_score=rhythm_timing,
+            volume_tone_score=volume_tone,
+            emotional_authenticity_score=emotional_authenticity,
+            confidence_detail_score=confidence_detail,
             session_id=session_id,
         )
 
@@ -136,7 +149,16 @@ async def generate_feedback_video(
             f.write(video_content)
 
         # Process video directly using multimodal analysis
-        feedback, average_score, confidence_score, session_id = await get_feedback_from_video(
+        (
+            feedback,
+            average_score,
+            confidence_score,
+            rhythm_timing,
+            volume_tone,
+            emotional_authenticity,
+            confidence_detail,
+            session_id,
+        ) = await get_feedback_from_video(
             video_filename=video_filename,
             script_details=script_details,
             user_id=feedback_input.user_id,
@@ -147,6 +169,10 @@ async def generate_feedback_video(
             feedback=feedback,
             accuracy=average_score,
             confidence=confidence_score,
+            rhythm_timing_score=rhythm_timing,
+            volume_tone_score=volume_tone,
+            emotional_authenticity_score=emotional_authenticity,
+            confidence_detail_score=confidence_detail,
             session_id=session_id,
         )
 

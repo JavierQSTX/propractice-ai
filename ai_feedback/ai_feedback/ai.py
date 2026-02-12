@@ -2,6 +2,7 @@ import asyncio
 import base64
 
 import instructor
+from google import genai
 from langfuse import get_client
 from langfuse.openai import AsyncOpenAI
 from loguru import logger
@@ -45,7 +46,6 @@ client = AsyncOpenAI(
 )
 instructor_client = instructor.from_openai(client)
 
-from google import genai
 genai_client = genai.Client(api_key=settings.ai_api_key)
 
 def get_scores_and_matching_keywords(
@@ -304,7 +304,7 @@ async def get_feedback(
     script_details: ScriptDetails,
     user_id: str | None,
     tags: list[str] | None,
-) -> tuple[str, int, int, str]:
+) -> tuple[str, int, int, int, int, int, int, str]:
     session_id = generate_session_id()
     logger.info(f"Lesson details: {script_details}")
 
@@ -347,6 +347,32 @@ async def get_feedback(
     confidence_score = (
         0
         if not keyword_equivalents.transcript_matches_lesson
+        else int(
+            (
+                audio_analysis.rhythm_timing_score
+                + audio_analysis.volume_tone_score
+                + audio_analysis.emotional_authenticity_score
+                + audio_analysis.confidence_score
+            )
+            / 4
+        )
+    )
+
+    # Individual dimension scores (0 if transcript doesn't match lesson)
+    rhythm_timing = (
+        0 if not keyword_equivalents.transcript_matches_lesson
+        else audio_analysis.rhythm_timing_score
+    )
+    volume_tone = (
+        0 if not keyword_equivalents.transcript_matches_lesson
+        else audio_analysis.volume_tone_score
+    )
+    emotional_authenticity = (
+        0 if not keyword_equivalents.transcript_matches_lesson
+        else audio_analysis.emotional_authenticity_score
+    )
+    confidence_detail = (
+        0 if not keyword_equivalents.transcript_matches_lesson
         else audio_analysis.confidence_score
     )
 
@@ -354,6 +380,10 @@ async def get_feedback(
         final_feedback,
         average_score,
         confidence_score,
+        rhythm_timing,
+        volume_tone,
+        emotional_authenticity,
+        confidence_detail,
         session_id,
     )
 
@@ -364,7 +394,7 @@ async def get_feedback_from_video(
     script_details: ScriptDetails,
     user_id: str | None,
     tags: list[str] | None,
-) -> tuple[str, int, int, str]:
+) -> tuple[str, int, int, int, int, int, int, str]:
     """
     Generate feedback from video using Gemini's multimodal capabilities.
     This function processes video directly without converting to audio first.
@@ -417,6 +447,32 @@ async def get_feedback_from_video(
     confidence_score = (
         0
         if not keyword_equivalents.transcript_matches_lesson
+        else int(
+            (
+                video_analysis.rhythm_timing_score
+                + video_analysis.volume_tone_score
+                + video_analysis.emotional_authenticity_score
+                + video_analysis.confidence_score
+            )
+            / 4
+        )
+    )
+
+    # Individual dimension scores (0 if transcript doesn't match lesson)
+    rhythm_timing = (
+        0 if not keyword_equivalents.transcript_matches_lesson
+        else video_analysis.rhythm_timing_score
+    )
+    volume_tone = (
+        0 if not keyword_equivalents.transcript_matches_lesson
+        else video_analysis.volume_tone_score
+    )
+    emotional_authenticity = (
+        0 if not keyword_equivalents.transcript_matches_lesson
+        else video_analysis.emotional_authenticity_score
+    )
+    confidence_detail = (
+        0 if not keyword_equivalents.transcript_matches_lesson
         else video_analysis.confidence_score
     )
 
@@ -424,6 +480,10 @@ async def get_feedback_from_video(
         final_feedback,
         average_score,
         confidence_score,
+        rhythm_timing,
+        volume_tone,
+        emotional_authenticity,
+        confidence_detail,
         session_id,
     )
 
