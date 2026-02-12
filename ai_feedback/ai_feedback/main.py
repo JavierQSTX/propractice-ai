@@ -129,9 +129,6 @@ async def generate_feedback_video(
         )
 
         video_content = await video.read()
-        base64_content_bytes = base64.b64encode(video_content)
-        base64_content_str = base64_content_bytes.decode('utf-8')
-        logger.info(f"base64Video {base64_content_str}")
 
         # Save video file
         video_filename = f"/tmp/{uuid.uuid4()}_{video.filename}"

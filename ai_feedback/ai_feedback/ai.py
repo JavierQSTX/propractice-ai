@@ -1,5 +1,5 @@
+import asyncio
 import base64
-import time
 
 import instructor
 from langfuse import get_client
@@ -144,7 +144,7 @@ async def get_video_analysis(video_filename: str, session_id: str) -> AudioAnaly
             break
 
         logger.info(f"Waiting for video processing... ({i + 1}/{MAX_ITERATIONS})")
-        time.sleep(SLEEP_SECONDS)
+        await asyncio.sleep(SLEEP_SECONDS)
         myfile = genai_client.files.get(name=myfile.name)
     else:
         raise TimeoutError("File processing timed out")
@@ -376,11 +376,15 @@ async def get_feedback_from_video(
     # Analyze video using multimodal model
     video_analysis = await get_video_analysis(video_filename, session_id)
 
-    keyword_equivalents = await get_keyword_equivalents(
+    # Run keyword extraction and text analysis concurrently for better performance
+    keyword_equivalents_task = get_keyword_equivalents(
         transcript=video_analysis.transcript,
         script_details=script_details,
         session_id=session_id,
     )
+    
+    # We need keyword_equivalents to compute scores before text_analysis
+    keyword_equivalents = await keyword_equivalents_task
     logger.info(f"Keyword equivalents: {keyword_equivalents}")
     scores, matching_keywords = get_scores_and_matching_keywords(keyword_equivalents)
     logger.info(f"Scores: {scores}")
@@ -391,6 +395,7 @@ async def get_feedback_from_video(
     except ZeroDivisionError:
         average_score = 0
 
+    # Text analysis can now run with the computed scores
     text_analysis = await get_text_analysis(
         transcript=video_analysis.transcript,
         script_details=script_details,
