@@ -1,5 +1,9 @@
-import uuid
+import asyncio
+import base64
 import subprocess
+import traceback
+import uuid
+
 from fastapi import (
     FastAPI,
     File,
@@ -9,11 +13,12 @@ from fastapi import (
     Request,
     Depends,
 )
-from loguru import logger
 from fastapi.middleware.cors import CORSMiddleware
-import traceback
+from loguru import logger
 
-from ai_feedback.ai import get_feedback, judge_feedback
+from ai_feedback.ai import get_feedback, judge_feedback, get_feedback_from_video
+from ai_feedback.authentication import verify_token, create_access_token
+from ai_feedback.config import settings
 from ai_feedback.models import (
     FeedbackInput,
     FeedbackResponse,
@@ -26,11 +31,6 @@ from ai_feedback.utils import (
     langfuse_user_like,
     fetch_feedback_input_output,
 )
-from ai_feedback.config import settings
-from ai_feedback.authentication import verify_token, create_access_token
-import asyncio
-import base64
-
 
 app = FastAPI()
 
@@ -107,6 +107,56 @@ async def generate_feedback(
         raise HTTPException(
             status_code=500, detail=f"{str(e)}\n\n{traceback.format_exc()}"
         )
+
+
+@app.post(
+    "/feedback_video", response_model=FeedbackResponse, dependencies=[Depends(verify_token)]
+)
+async def generate_feedback_video(
+    video: UploadFile = File(...), feedback_input_str: str = Form(...)
+):
+    """
+    Generate feedback from video using Gemini's multimodal capabilities.
+    Processes video directly without converting to audio first.
+    """
+    try:
+        logger.info(f"Video feedback request input {feedback_input_str}")
+        feedback_input = FeedbackInput.model_validate_json(feedback_input_str)
+        script_details = ScriptDetails(
+            question=feedback_input.question,
+            keyElements=feedback_input.keyElements,
+            briefing=feedback_input.briefing,
+        )
+
+        video_content = await video.read()
+
+        # Save video file
+        video_filename = f"/tmp/{uuid.uuid4()}_{video.filename}"
+        with open(video_filename, "wb") as f:
+            f.write(video_content)
+
+        # Process video directly using multimodal analysis
+        feedback, average_score, confidence_score, session_id = await get_feedback_from_video(
+            video_filename=video_filename,
+            script_details=script_details,
+            user_id=feedback_input.user_id,
+            tags=feedback_input.tags,
+        )
+        
+        return FeedbackResponse(
+            feedback=feedback,
+            accuracy=average_score,
+            confidence=confidence_score,
+            session_id=session_id,
+        )
+
+    except Exception as e:
+        logger.error(str(e))
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500, detail=f"{str(e)}\n\n{traceback.format_exc()}"
+        )
+
 
 
 @app.post("/like", dependencies=[Depends(verify_token)])

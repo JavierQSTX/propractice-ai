@@ -32,7 +32,9 @@ This service is designed to evaluate video presentations against predefined scri
 ### Core Capabilities
 
 - **Video Processing**: Automatic conversion of video files to audio format using FFmpeg
+- **Multimodal Video Analysis**: Direct video processing with Gemini's multimodal capabilities (audio + visual)
 - **AI-Powered Transcription**: Accurate speech-to-text conversion with filler word detection
+- **Visual Presentation Analysis**: Assessment of body language, facial expressions, and gestures
 - **Keyword Matching**: Intelligent matching of spoken content against required keywords and scripts
 - **Confidence Scoring**: Automated assessment of speaker confidence and delivery quality
 - **Accuracy Scoring**: Evaluation of content coverage based on key elements
@@ -286,6 +288,61 @@ Generate AI feedback for a video submission.
 }
 ```
 
+### POST /feedback_video
+
+Generate AI feedback for a video submission using multimodal analysis (audio + visual).
+
+**Authentication:** Required (Bearer token)
+
+**Request:**
+- **video** (file): Video file (MP4, WebM, MOV, AVI, etc.)
+- **feedback_input_str** (form data): JSON string containing:
+  - **challenge** (string|int): Challenge identifier
+  - **question** (string): The question or topic
+  - **briefing** (string): Context and background information
+  - **keyElements** (array): Array of script elements with keywords
+    - **script** (string): Expected script content
+    - **keywords** (array): Required keywords
+  - **user_id** (string, optional): User identifier
+  - **tags** (array, optional): Tags for categorization
+
+**Response:**
+```json
+{
+  "feedback": "Detailed feedback text including visual analysis...",
+  "accuracy": 85,
+  "confidence": 100,
+  "session_id": "uuid-string"
+}
+```
+
+**Key Differences from /feedback:**
+- Processes video directly using Gemini's multimodal capabilities
+- Includes analysis of visual elements (body language, facial expressions, gestures)
+- Uses File API for better support of larger video files
+- Provides richer, more comprehensive feedback
+
+**Example:**
+```bash
+curl -X POST http://localhost:8080/feedback_video \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -F "video=@path/to/video.mp4" \
+  -F 'feedback_input_str={
+    "challenge": "1",
+    "question": "Why does a customer need this service?",
+    "briefing": "Brief description of the topic",
+    "keyElements": [
+      {
+        "script": "Expected script content",
+        "keywords": ["keyword1", "keyword2"]
+      }
+    ],
+    "user_id": "user123",
+    "tags": ["tag1", "tag2"]
+  }'
+```
+
+
 ### POST /like
 
 Record user feedback on the AI-generated response.
@@ -350,17 +407,19 @@ ai_feedback/
 The FastAPI application entry point containing:
 - CORS middleware configuration
 - Authentication endpoints
-- Feedback generation endpoint
+- Feedback generation endpoints (`/feedback` and `/feedback_video`)
 - User feedback and judgment endpoints
 
 #### ai.py
 
 Core AI processing logic:
 - `get_audio_analysis()`: Transcribes audio and analyzes speaking style
+- `get_video_analysis()`: Analyzes video using multimodal capabilities (audio + visual)
 - `get_keyword_equivalents()`: Matches transcript keywords with required keywords
 - `get_text_analysis()`: Generates comprehensive feedback
 - `judge_feedback()`: Evaluates feedback quality
-- `get_feedback()`: Main orchestration function
+- `get_feedback()`: Main orchestration function for audio-based feedback
+- `get_feedback_from_video()`: Main orchestration function for video-based feedback
 
 #### models.py
 
