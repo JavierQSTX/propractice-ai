@@ -23,6 +23,7 @@ from ai_feedback.models import (
     FeedbackInput,
     FeedbackResponse,
     ScriptDetails,
+    SupportedLanguage,
     UserLikeRequest,
     LangfuseTracesRequest,
 )
@@ -63,7 +64,9 @@ async def login(request: Request):
     "/feedback", response_model=FeedbackResponse, dependencies=[Depends(verify_token)]
 )
 async def generate_feedback(
-    video: UploadFile = File(...), feedback_input_str: str = Form(...)
+    video: UploadFile = File(...), 
+    feedback_input_str: str = Form(...),
+    language: SupportedLanguage = Form(SupportedLanguage.ENGLISH),
 ):
     try:
         logger.info(f"Feedback request input {feedback_input_str}")
@@ -100,6 +103,7 @@ async def generate_feedback(
             script_details=script_details,
             user_id=feedback_input.user_id,
             tags=feedback_input.tags,
+            language=language.value,
         )
         return FeedbackResponse(
             feedback=feedback,
@@ -126,7 +130,9 @@ async def generate_feedback(
     "/feedback_video", response_model=FeedbackResponse, dependencies=[Depends(verify_token)]
 )
 async def generate_feedback_video(
-    video: UploadFile = File(...), feedback_input_str: str = Form(...)
+    video: UploadFile = File(...), 
+    feedback_input_str: str = Form(...),
+    language: SupportedLanguage = Form(SupportedLanguage.ENGLISH),
 ):
     """
     Generate feedback from video using Gemini's multimodal capabilities.
@@ -163,6 +169,7 @@ async def generate_feedback_video(
             script_details=script_details,
             user_id=feedback_input.user_id,
             tags=feedback_input.tags,
+            language=language.value,
         )
         
         return FeedbackResponse(

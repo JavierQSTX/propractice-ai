@@ -25,7 +25,7 @@ from ai_feedback.constants.prompts import (
 from ai_feedback.models import (
     ScriptDetails,
     AudioAnalysis,
-    LessonDetailsExtractedKeywords,
+    LessonDetailsExtractedKeywords, SupportedLanguage,
 )
 from ai_feedback.utils import (
     lf,
@@ -90,7 +90,7 @@ def get_scores_and_matching_keywords(
     return scores, matching_keywords
 
 
-async def get_audio_analysis(audio: bytes, session_id: str) -> AudioAnalysis:
+async def get_audio_analysis(audio: bytes, session_id: str, language: str = SupportedLanguage.ENGLISH.value) -> AudioAnalysis:
     encoded_string = base64.b64encode(audio).decode("utf-8")
 
     max_words_per_speech_dimension = lf.get_prompt(
@@ -106,7 +106,8 @@ async def get_audio_analysis(audio: bytes, session_id: str) -> AudioAnalysis:
             {
                 "role": "developer",
                 "content": AUDIO_ANALYSIS_PROMPT.format(
-                    max_words_per_speech_dimension=max_words_per_speech_dimension
+                    max_words_per_speech_dimension=max_words_per_speech_dimension,
+                    language=language
                 ),
             },
             {
@@ -128,7 +129,7 @@ async def get_audio_analysis(audio: bytes, session_id: str) -> AudioAnalysis:
     return audio_analysis
 
 
-async def get_video_analysis(video_filename: str, session_id: str) -> AudioAnalysis:
+async def get_video_analysis(video_filename: str, session_id: str, language: str = SupportedLanguage.ENGLISH.value) -> AudioAnalysis:
     """
     Analyze video using Gemini 3.0's multimodal capabilities.
     Uploads video to File API and processes both audio and visual streams.
@@ -164,7 +165,8 @@ async def get_video_analysis(video_filename: str, session_id: str) -> AudioAnaly
         model="gemini-3-flash-preview",
         contents=[
             VIDEO_ANALYSIS_PROMPT.format(
-                max_words_per_speech_dimension=max_words_per_speech_dimension
+                max_words_per_speech_dimension=max_words_per_speech_dimension,
+                language=language
             ),
             myfile,
         ],
@@ -196,6 +198,7 @@ async def get_text_analysis(
     scores: dict[str, int],
     matching_keywords: dict[str, list[str]],
     session_id: str,
+    language: str = SupportedLanguage.ENGLISH.value,
 ) -> str:
     include_coaching_recommendations = (
         lf.get_prompt(
@@ -224,6 +227,7 @@ async def get_text_analysis(
                     coaching_column_instructions=prompt_values[
                         "coaching_column_instructions"
                     ],
+                    language=language,
                 ),
             },
             {
@@ -250,14 +254,14 @@ async def get_text_analysis(
 
 
 async def get_keyword_equivalents(
-    *, transcript: str, script_details: ScriptDetails, session_id: str
+    *, transcript: str, script_details: ScriptDetails, session_id: str, language: str = SupportedLanguage.ENGLISH.value
 ) -> LessonDetailsExtractedKeywords:
 
     logger.info(f"Before calling instructor_client")
     keyword_equivalents = genai_client.models.generate_content(
         model=settings.ai_model_name,
         contents=[
-            EXTRACT_KEYWORDS_PROMPT,
+            EXTRACT_KEYWORDS_PROMPT.format(language=language),
             f"<transcript>{transcript}</transcript>\n\n <lesson_details>{script_details}</lesson_details>"
         ],
         config={
@@ -304,17 +308,19 @@ async def get_feedback(
     script_details: ScriptDetails,
     user_id: str | None,
     tags: list[str] | None,
+    language: str = SupportedLanguage.ENGLISH.value,
 ) -> tuple[str, int, int, int, int, int, int, str]:
     session_id = generate_session_id()
     logger.info(f"Lesson details: {script_details}")
 
     audio = read_audio(audio_filename)
-    audio_analysis = await get_audio_analysis(audio, session_id)
+    audio_analysis = await get_audio_analysis(audio, session_id, language)
 
     keyword_equivalents = await get_keyword_equivalents(
         transcript=audio_analysis.transcript,
         script_details=script_details,
         session_id=session_id,
+        language=language,
     )
     logger.info(f"Keyword equivalents: {keyword_equivalents}")
     scores, matching_keywords = get_scores_and_matching_keywords(keyword_equivalents)
@@ -332,6 +338,7 @@ async def get_feedback(
         scores=scores,
         matching_keywords=matching_keywords,
         session_id=session_id,
+        language=language,
     )
     speech_analysis = (
         SPEECH_ANALYSIS_SKIPPED
@@ -394,6 +401,7 @@ async def get_feedback_from_video(
     script_details: ScriptDetails,
     user_id: str | None,
     tags: list[str] | None,
+    language: str = SupportedLanguage.ENGLISH.value,
 ) -> tuple[str, int, int, int, int, int, int, str]:
     """
     Generate feedback from video using Gemini's multimodal capabilities.
@@ -404,13 +412,14 @@ async def get_feedback_from_video(
     logger.info(f"Processing video file: {video_filename}")
 
     # Analyze video using multimodal model
-    video_analysis = await get_video_analysis(video_filename, session_id)
+    video_analysis = await get_video_analysis(video_filename, session_id, language)
 
     # Run keyword extraction and text analysis concurrently for better performance
     keyword_equivalents_task = get_keyword_equivalents(
         transcript=video_analysis.transcript,
         script_details=script_details,
         session_id=session_id,
+        language=language,
     )
     
     # We need keyword_equivalents to compute scores before text_analysis
@@ -432,6 +441,7 @@ async def get_feedback_from_video(
         scores=scores,
         matching_keywords=matching_keywords,
         session_id=session_id,
+        language=language,
     )
     speech_analysis = (
         SPEECH_ANALYSIS_SKIPPED

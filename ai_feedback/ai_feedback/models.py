@@ -1,4 +1,16 @@
 from pydantic import BaseModel, Field
+from enum import Enum
+
+
+class SupportedLanguage(str, Enum):
+    """Supported languages for feedback generation"""
+    ENGLISH = "english"
+    GERMAN = "german"
+    DUTCH = "dutch"
+    FRENCH = "french"
+    MALAY = "malay"
+    SPANISH = "spanish"
+    POLISH = "polish"
 
 
 class KeyElement(BaseModel):
