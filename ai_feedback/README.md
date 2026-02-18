@@ -13,6 +13,7 @@ A FastAPI-based service that provides AI-powered feedback analysis for video pre
 - [Usage](#usage)
 - [API Endpoints](#api-endpoints)
 - [Project Structure](#project-structure)
+- [Evaluation Pipeline](#evaluation-pipeline)
 - [Development](#development)
 - [Deployment](#deployment)
 - [Monitoring and Analytics](#monitoring-and-analytics)
@@ -388,11 +389,23 @@ ai_feedback/
 │       ├── prompts.py          # Main AI prompts
 │       ├── conditional_prompts.py  # Conditional prompt logic
 │       └── fallback_prompts.py     # Fallback prompts
+├── evaluation/                 # Evaluation pipeline for feedback quality
+│   ├── evaluation_config.py    # Evaluation configuration
+│   ├── extractor.py            # Extract style coaching from feedback
+│   ├── similarity.py           # Semantic similarity calculation
+│   ├── evaluator.py            # Main evaluation orchestrator
+│   ├── api_client.py           # Feedback API client
+│   ├── run_evaluation.py       # CLI script to run evaluations
+│   ├── README.md               # Evaluation documentation
+│   └── LANGFUSE_GUIDE.md       # Langfuse integration guide
 ├── scripts/                    # Utility scripts
 │   ├── send_request.py         # Test script for API requests
 │   ├── deploy.sh               # Production deployment script
 │   └── deploy-dev.sh           # Development deployment script
 ├── data/                       # Test data and sample videos
+│   ├── sets/                   # Test video sets
+│   ├── challenges/             # Challenge payloads
+│   └── answers/                # Reference answers for evaluation
 ├── Dockerfile                  # Docker container definition
 ├── Makefile                    # Build and deployment commands
 ├── pyproject.toml              # Poetry dependencies and project metadata
@@ -447,6 +460,51 @@ JWT-based authentication:
 - Token creation and validation
 - Password verification
 - Token dependency for protected endpoints
+
+## Evaluation Pipeline
+
+The project includes a comprehensive evaluation system to measure AI feedback quality by comparing generated style coaching against reference answers using semantic similarity.
+
+### Quick Start
+
+Run evaluation on all test sets:
+```bash
+make evaluate
+```
+
+Run evaluation on a specific set:
+```bash
+make evaluate-set SET=set_1 EXP=baseline
+```
+
+Run with custom experiment name:
+```bash
+make evaluate-experiment NAME=prompt_v2
+```
+
+### Features
+
+- **Semantic Similarity**: Uses embeddings to measure how close generated feedback is to reference answers
+- **Langfuse Integration**: Tracks all evaluation runs for experiment comparison
+- **Category Analysis**: Scores each coaching category separately (Rhythm & Timing, Volume & Tone, etc.)
+- **Prompt Tuning**: Compare different prompt versions to systematically improve quality
+
+### Documentation
+
+See [evaluation/README.md](evaluation/README.md) for comprehensive documentation including:
+- Setup and configuration
+- Running evaluations
+- Viewing results in Langfuse
+- Prompt tuning workflow
+- Adding test cases
+
+### Evaluation Workflow
+
+1. **Establish baseline**: `make evaluate-experiment NAME=baseline`
+2. **Modify prompts**: Edit `ai_feedback/constants/prompts.py`
+3. **Test changes**: `make evaluate-experiment NAME=prompt_v2`
+4. **Compare in Langfuse**: Review similarity scores and improvements
+5. **Iterate**: Continue refining based on results
 
 ## Development
 
