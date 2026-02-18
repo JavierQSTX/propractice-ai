@@ -1,0 +1,164 @@
+#!/usr/bin/env python3
+"""
+CLI for running AI feedback evaluations.
+"""
+
+import asyncio
+import sys
+from pathlib import Path
+import click
+from loguru import logger
+from langfuse import Langfuse
+
+# Add parent directory to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from evaluation import evaluation_config
+from evaluation.similarity import SimilarityCalculator
+from evaluation.evaluator import FeedbackEvaluator
+
+
+def setup_logging(verbose: bool = False):
+    """Setup logging configuration."""
+    logger.remove()
+    level = "DEBUG" if verbose else "INFO"
+    logger.add(sys.stderr, level=level)
+
+
+def get_available_sets() -> list:
+    """Get list of available test sets."""
+    sets_dir = Path(evaluation_config.SETS_DIR)
+    if not sets_dir.exists():
+        return []
+    return sorted([d.name for d in sets_dir.iterdir() if d.is_dir()])
+
+
+@click.command()
+@click.option(
+    '--set',
+    'test_set',
+    type=str,
+    default='set_1',
+    show_default=True,
+    help='Test set to evaluate (e.g., set_1)'
+)
+@click.option(
+    '--all',
+    'evaluate_all',
+    is_flag=True,
+    help='Evaluate all test sets'
+)
+@click.option(
+    '--experiment',
+    type=str,
+    default='baseline',
+    show_default=True,
+    help='Experiment name for tracking in Langfuse'
+)
+@click.option(
+    '--language',
+    type=str,
+    default='English',
+    help='Language for feedback generation (default: English)'
+)
+@click.option(
+    '--api-url',
+    type=str,
+    default='http://localhost:8080',
+    help='API base URL (default: from config)'
+)
+@click.option(
+    '--verbose',
+    is_flag=True,
+    help='Enable verbose logging'
+)
+@click.option(
+    '--no-langfuse',
+    is_flag=True,
+    help='Disable Langfuse tracking'
+)
+def main(test_set, evaluate_all, experiment, language, api_url, verbose, no_langfuse):
+    """Run evaluation on AI feedback quality."""
+    
+    # Setup logging
+    setup_logging(verbose)
+    
+    # Get test sets to evaluate
+    if evaluate_all:
+        test_sets = get_available_sets()
+        if not test_sets:
+            logger.error(f"No test sets found in {evaluation_config.SETS_DIR}")
+            sys.exit(1)
+        logger.info(f"Found {len(test_sets)} test sets: {', '.join(test_sets)}")
+    else:
+        test_sets = [test_set]
+    
+    # Check if AI API key is set
+    if not evaluation_config.AI_API_KEY:
+        logger.error("AI_API_KEY environment variable must be set")
+        sys.exit(1)
+    
+    # Initialize similarity calculator
+    logger.info("Initializing similarity calculator...")
+    similarity_calculator = SimilarityCalculator(api_key=evaluation_config.AI_API_KEY)
+    
+    # Initialize Langfuse if enabled
+    langfuse_client = None
+    if not no_langfuse:
+        try:
+            logger.info("Initializing Langfuse client...")
+            langfuse_client = Langfuse()
+            logger.info("Langfuse client initialized successfully")
+        except Exception as e:
+            logger.warning(f"Failed to initialize Langfuse: {e}")
+            logger.warning("Continuing without Langfuse tracking")
+    
+    # Initialize evaluator
+    evaluator = FeedbackEvaluator(
+        similarity_calculator=similarity_calculator,
+        langfuse_client=langfuse_client,
+        experiment_name=experiment
+    )
+    
+    # Run evaluations
+    async def run_evaluations():
+        all_results = []
+        
+        for ts in test_sets:
+            logger.info(f"\n{'='*80}")
+            logger.info(f"Evaluating test set: {ts}")
+            logger.info(f"{'='*80}\n")
+            
+            results = await evaluator.evaluate_set(ts, language=language)
+            all_results.extend(results)
+            
+            if results:
+                logger.info(f"Completed {len(results)} evaluations for {ts}")
+        
+        return all_results
+    
+    # Run async evaluations
+    all_results = asyncio.run(run_evaluations())
+    
+    # Print summary
+    if all_results:
+        evaluator.print_summary(all_results)
+        
+        # Flush Langfuse
+        if langfuse_client:
+            logger.info("Flushing Langfuse data...")
+            langfuse_client.flush()
+            logger.info("Langfuse data flushed successfully")
+        
+        logger.info(f"\n✓ Evaluation complete! Experiment: {experiment}")
+        if langfuse_client:
+            logger.info(f"View results in Langfuse dashboard")
+        
+        sys.exit(0)
+    else:
+        logger.error("No evaluations were completed")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
