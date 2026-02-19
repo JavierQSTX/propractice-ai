@@ -22,11 +22,11 @@ deploy-dev: generate-requirements
 
 # Evaluation commands
 evaluate:
-	cd evaluation && poetry run python run_evaluation.py --all --experiment baseline
+	cd evaluation && poetry run python entrypoint.py --all --experiment baseline
 
 evaluate-set:
-	cd evaluation && poetry run python run_evaluation.py --set $(SET) --experiment $(EXP)
+	cd evaluation && poetry run python entrypoint.py --set $(SET) --experiment $(EXP)
 
 evaluate-experiment:
-	cd evaluation && poetry run python run_evaluation.py --all --experiment $(NAME)
+	cd evaluation && poetry run python entrypoint.py --all --experiment $(NAME)
 

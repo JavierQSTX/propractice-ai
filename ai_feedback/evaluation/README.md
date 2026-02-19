@@ -224,7 +224,52 @@ set_1/3              0.698        ✗ FAIL
 
 ## Viewing in Langfuse
 
-See [LANGFUSE_GUIDE.md](LANGFUSE_GUIDE.md) for detailed instructions on viewing and comparing evaluation results in Langfuse.
+After running an evaluation, all results are automatically sent to Langfuse. Here is how to navigate and interpret them.
+
+### 1. Open the Dashboard
+
+Go to [cloud.langfuse.com](https://cloud.langfuse.com) and open your project.
+
+### 2. Traces
+
+Each evaluated video creates one **trace** named `eval_<set>_<case>` (e.g. `eval_set_1_1`).
+
+Each trace contains:
+- **Input**: video path and challenge payload
+- **Output**: full generated feedback and extracted style coaching
+- **Metadata**: experiment name, test set, test case, accuracy and confidence scores
+- **Tags**: experiment name and test set name — use these to filter
+
+### 3. Scores
+
+Every trace has three types of scores attached:
+
+| Score | Description |
+|---|---|
+| `overall_similarity` | Cosine similarity between generated and reference coaching (0–1) |
+| `similarity_<category>` | Per-category score (e.g. `similarity_rhythm_and_timing`) |
+| `passed` | 1.0 if overall similarity ≥ threshold, 0.0 otherwise |
+
+### 4. Comparing Experiments
+
+To compare two prompt versions side by side:
+
+1. Go to **Experiments** in the left sidebar
+2. Select the two experiment names (e.g. `baseline` vs `prompt_v2`)
+3. Langfuse will show a diff of scores across all traces
+
+Or filter traces by tag in the **Traces** view and sort by `overall_similarity` to spot regressions.
+
+### 5. Interpreting Scores
+
+| Range | Meaning |
+|---|---|
+| 0.90 – 1.00 | Excellent — nearly identical meaning |
+| 0.75 – 0.89 | Good — similar meaning with minor variations |
+| 0.60 – 0.74 | Fair — related but noticeable differences |
+| 0.00 – 0.59 | Poor — significantly different meaning |
+
+The pass threshold is `SIMILARITY_THRESHOLD` in `evaluation/constants.py` (default: `0.75`).
 
 ## Prompt Tuning Workflow
 

@@ -6,18 +6,19 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Any, List, Optional
-from loguru import logger
+
 from langfuse import Langfuse
+from loguru import logger
 
 from ai_feedback.ai import get_feedback_from_video
 from ai_feedback.models import ScriptDetails
-from evaluation import evaluation_config
+from evaluation import config
+from evaluation.config import SIMILARITY_THRESHOLD
 from evaluation.extractor import (
     extract_style_coaching,
     extract_style_coaching_by_category,
 )
 from evaluation.similarity import SimilarityCalculator
-from evaluation.constants import SIMILARITY_THRESHOLD
 
 
 @dataclass
@@ -178,47 +179,56 @@ class FeedbackEvaluator:
     def _log_to_langfuse(
         self, result: EvaluationResult, payload: Dict[str, Any], full_feedback: str
     ):
-        """Log evaluation result to Langfuse."""
+        """Log evaluation result to Langfuse (v3 API)."""
         try:
-            trace = self.langfuse_client.trace(
+            trace_id = self.langfuse_client.create_trace_id()
+
+            # Create the trace via a span
+            with self.langfuse_client.start_as_current_span(
                 name=f"eval_{result.test_set}_{result.test_case}",
                 input={"video_path": result.video_path, "payload": payload},
                 output={
                     "feedback": full_feedback,
                     "extracted_coaching": result.generated_coaching,
                 },
-                metadata={
-                    "experiment": self.experiment_name,
-                    "test_set": result.test_set,
-                    "test_case": result.test_case,
-                    "session_id": result.session_id,
-                    "accuracy": result.accuracy,
-                    "confidence": result.confidence,
-                },
-                tags=[self.experiment_name, result.test_set],
-            )
+            ) as span:
+                span.update(
+                    metadata={
+                        "experiment": self.experiment_name,
+                        "test_set": result.test_set,
+                        "test_case": result.test_case,
+                        "session_id": result.session_id,
+                        "accuracy": result.accuracy,
+                        "confidence": result.confidence,
+                    },
+                    tags=[self.experiment_name, result.test_set],
+                )
+                trace_id = self.langfuse_client.get_current_trace_id()
 
-            # Log overall similarity score
-            trace.score(
+            # Log scores against the trace
+            self.langfuse_client.create_score(
+                trace_id=trace_id,
                 name="overall_similarity",
                 value=result.overall_similarity,
                 comment=f"Threshold: {SIMILARITY_THRESHOLD}",
             )
 
-            # Log category similarities
             for category, similarity in result.category_similarities.items():
-                # Convert category name to snake_case for score name
                 score_name = f"similarity_{category.lower().replace(' ', '_').replace('&', 'and')}"
-                trace.score(name=score_name, value=similarity)
+                self.langfuse_client.create_score(
+                    trace_id=trace_id,
+                    name=score_name,
+                    value=similarity,
+                )
 
-            # Log pass/fail
-            trace.score(
+            self.langfuse_client.create_score(
+                trace_id=trace_id,
                 name="passed",
                 value=1.0 if result.passed else 0.0,
                 comment=f"Threshold: {SIMILARITY_THRESHOLD}",
             )
 
-            logger.info(f"Logged evaluation to Langfuse: {trace.id}")
+            logger.info(f"Logged evaluation to Langfuse, trace_id: {trace_id}")
 
         except Exception as e:
             logger.warning(f"Failed to log to Langfuse: {e}")
@@ -239,7 +249,7 @@ class FeedbackEvaluator:
         results = []
 
         # Get paths
-        sets_dir = Path(evaluation_config.SETS_DIR)
+        sets_dir = Path(config.SETS_DIR)
         set_dir = sets_dir / test_set
 
         if not set_dir.exists():
@@ -255,7 +265,7 @@ class FeedbackEvaluator:
 
         # Load payload (assumes one payload per set)
         payload_path = (
-            Path(evaluation_config.CHALLENGES_DIR)
+            Path(config.CHALLENGES_DIR)
             / f"payload_{test_set.split('_')[-1]}.json"
         )
 
@@ -272,7 +282,7 @@ class FeedbackEvaluator:
 
             # Load reference answer
             answer_path = (
-                Path(evaluation_config.ANSWERS_DIR) / test_set / f"{test_case}.json"
+                Path(config.ANSWERS_DIR) / test_set / f"{test_case}.json"
             )
 
             if not answer_path.exists():

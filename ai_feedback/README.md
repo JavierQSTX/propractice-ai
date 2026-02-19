@@ -489,22 +489,23 @@ make evaluate-experiment NAME=prompt_v2
 - **Category Analysis**: Scores each coaching category separately (Rhythm & Timing, Volume & Tone, etc.)
 - **Prompt Tuning**: Compare different prompt versions to systematically improve quality
 
-### Documentation
+### Viewing Results in Langfuse
 
-See [evaluation/README.md](evaluation/README.md) for comprehensive documentation including:
-- Setup and configuration
-- Running evaluations
-- Viewing results in Langfuse
-- Prompt tuning workflow
-- Adding test cases
+After running an evaluation, open [cloud.langfuse.com](https://cloud.langfuse.com) and navigate to your project.
 
-### Evaluation Workflow
+**Traces** — each evaluated video creates one trace named `eval_<set>_<case>` tagged with the experiment name. Each trace contains the full generated feedback, extracted coaching, and metadata.
 
-1. **Establish baseline**: `make evaluate-experiment NAME=baseline`
-2. **Modify prompts**: Edit `ai_feedback/constants/prompts.py`
-3. **Test changes**: `make evaluate-experiment NAME=prompt_v2`
-4. **Compare in Langfuse**: Review similarity scores and improvements
-5. **Iterate**: Continue refining based on results
+**Scores** attached to every trace:
+
+| Score | Description |
+|---|---|
+| `overall_similarity` | Cosine similarity vs reference coaching (0–1) |
+| `similarity_<category>` | Per-category score (rhythm, volume, etc.) |
+| `passed` | 1.0 if score ≥ threshold, 0.0 otherwise |
+
+**Comparing experiments** — go to **Experiments** in the sidebar, select two runs (e.g. `baseline` vs `prompt_v2`) and Langfuse will diff the scores side by side.
+
+See [evaluation/README.md](evaluation/README.md) for full setup and usage details.
 
 ## Development
 

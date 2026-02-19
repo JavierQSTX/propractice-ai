@@ -7,9 +7,7 @@ from typing import List, Dict
 from openai import OpenAI
 from sklearn.metrics.pairwise import cosine_similarity
 from loguru import logger
-
-from evaluation import evaluation_config
-from evaluation.constants import EMBEDDING_MODEL
+from evaluation.config import EMBEDDING_MODEL
 
 
 class SimilarityCalculator:
