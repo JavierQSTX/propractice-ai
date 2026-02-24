@@ -276,6 +276,9 @@ The pass threshold is `SIMILARITY_THRESHOLD` in `evaluation/constants.py` (defau
 
 The evaluation pipeline runs automatically on every pull request and every push to `dev` or `main` via `.github/workflows/evaluation.yml`.
 
+> [!IMPORTANT]
+> To preserve API quota, evaluations are **skipped for draft Pull Requests**. The pipeline will trigger automatically once the PR is marked as **"Ready for Review"**.
+
 ### Pipeline view
 
 ![GitHub Actions evaluation pipeline](docs/pipeline.png)

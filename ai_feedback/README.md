@@ -469,6 +469,9 @@ The project includes a comprehensive evaluation system that measures AI feedback
 
 The evaluation pipeline runs automatically via `.github/workflows/evaluation.yml`:
 
+> [!NOTE]
+> Evaluations are skipped for **draft Pull Requests** to save API quota. Mark the PR as **"Ready for Review"** to trigger the pipeline.
+
 | Trigger | Experiment name | Result reported as |
 |---|---|---|
 | Pull request → `dev`/`main` | `pr-<number>` | Sticky PR comment with scores |
