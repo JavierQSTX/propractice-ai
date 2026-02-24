@@ -263,22 +263,22 @@ class FeedbackEvaluator:
             logger.warning(f"No video files found in {set_dir}")
             return results
 
-        # Load payload (assumes one payload per set)
-        payload_path = (
-            Path(config.CHALLENGES_DIR)
-            / f"payload_{test_set.split('_')[-1]}.json"
-        )
-
-        if not payload_path.exists():
-            logger.error(f"Payload file not found: {payload_path}")
-            return results
-
-        with open(payload_path, "r") as f:
-            payload = json.load(f)
-
-        # Process each video
+        # Process each video - payload is loaded per video from its filename stem
+        # e.g. 1.webm -> payload_1.json
         for video_file in video_files:
             test_case = video_file.stem  # filename without extension
+
+            # Load payload for this specific video
+            payload_path = (
+                Path(config.CHALLENGES_DIR) / f"payload_{test_case}.json"
+            )
+
+            if not payload_path.exists():
+                logger.error(f"Payload file not found: {payload_path}")
+                continue
+
+            with open(payload_path, "r") as f:
+                payload = json.load(f)
 
             # Load reference answer
             answer_path = (

@@ -68,13 +68,13 @@ def main(test_set, evaluate_all, experiment, language, api_url, verbose, no_lang
         test_sets = [test_set]
 
     # Check if AI API key is set
-    if not config.AI_API_KEY:
+    if not config.settings.ai_api_key:
         logger.error("AI_API_KEY environment variable must be set")
         sys.exit(1)
 
     # Initialize similarity calculator
     logger.info("Initializing similarity calculator...")
-    similarity_calculator = SimilarityCalculator(api_key=config.AI_API_KEY)
+    similarity_calculator = SimilarityCalculator(api_key=config.settings.ai_api_key)
 
     # Initialize Langfuse if enabled
     langfuse_client = None
