@@ -11,6 +11,7 @@ A comprehensive evaluation system for assessing the quality of AI-generated feed
 - [Running Evaluations](#running-evaluations)
 - [Understanding Results](#understanding-results)
 - [Viewing in Langfuse](#viewing-in-langfuse)
+- [CI/CD — GitHub Actions](#cicd--github-actions)
 - [Prompt Tuning Workflow](#prompt-tuning-workflow)
 - [Adding Test Cases](#adding-test-cases)
 
@@ -270,6 +271,66 @@ Or filter traces by tag in the **Traces** view and sort by `overall_similarity` 
 | 0.00 – 0.59 | Poor — significantly different meaning |
 
 The pass threshold is `SIMILARITY_THRESHOLD` in `evaluation/constants.py` (default: `0.75`).
+
+## CI/CD — GitHub Actions
+
+The evaluation pipeline runs automatically on every pull request and every push to `dev` or `main` via `.github/workflows/evaluation.yml`.
+
+### Pipeline view
+
+![GitHub Actions evaluation pipeline](docs/pipeline.png)
+
+### Langfuse results view
+
+![Langfuse dataset runs view](docs/langfuse_view.png)
+
+### Trigger matrix
+
+| Event | Experiment name | Score reported as |
+|---|---|---|
+| Pull request to `dev`/`main` | `pr-<number>` | Sticky PR comment |
+| Push / merge to `main` | `main` | Job summary |
+| Push / merge to `dev` | `dev` | Job summary |
+| Manual dispatch | custom input or `manual-<run>` | Job summary |
+
+### PR comment example
+
+Every PR automatically receives a comment like this (updated on each new push):
+
+```
+🧪 Evaluation Results — pr-42
+
+| Metric          | Value   |
+|-----------------|---------|
+| Avg Similarity  | 0.821   |
+| Pass Rate       | 66.7%   |
+| Passed / Total  | 6 / 9   |
+
+📊 Full per-example breakdown: Langfuse Dataset → Runs
+```
+
+### Required GitHub Secrets
+
+Go to **Repository → Settings → Secrets and variables → Actions** and add:
+
+| Secret name | Description | Where to get it |
+|---|---|---|
+| `AI_API_KEY` | Google AI API key (Gemini + embeddings) | [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey) |
+| `LANGFUSE_SECRET_KEY` | Langfuse secret key | Langfuse → Settings → API Keys |
+| `LANGFUSE_PUBLIC_KEY` | Langfuse public key | Langfuse → Settings → API Keys |
+| `LANGFUSE_HOST` | Langfuse host URL | e.g. `https://us.cloud.langfuse.com` |
+
+> **Note**: `LOGIN_USERNAME`, `LOGIN_PASSWORD`, and `JWT_SECRET_KEY` are set to dummy CI values inside the workflow — the evaluation pipeline calls AI functions directly and does not need real auth credentials.
+
+### How experiment names work
+
+Every trace in Langfuse gets:
+- **Tag** `pr-42` / `main` / `dev` → filter by experiment in the Traces list
+- **Tag** `evaluation_YYYYMMDD_HHMMSS` → `pipeline_run`, groups all traces from one CI run
+- **Metadata** `video_analysis_prompt_hash` → fingerprint of the exact prompt used
+- **Metadata** `video_analysis_prompt_full` → full prompt text stored once per run
+
+This lets you compare runs in **Datasets → ai_feedback_eval → Runs** and instantly see which prompt produced which score.
 
 ## Prompt Tuning Workflow
 

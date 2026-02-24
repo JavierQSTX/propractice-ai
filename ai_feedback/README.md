@@ -13,7 +13,7 @@ A FastAPI-based service that provides AI-powered feedback analysis for video pre
 - [Usage](#usage)
 - [API Endpoints](#api-endpoints)
 - [Project Structure](#project-structure)
-- [Evaluation Pipeline](#evaluation-pipeline)
+- [Evaluation Pipeline & CI/CD](#evaluation-pipeline--cicd)
 - [Development](#development)
 - [Deployment](#deployment)
 - [Monitoring and Analytics](#monitoring-and-analytics)
@@ -461,51 +461,50 @@ JWT-based authentication:
 - Password verification
 - Token dependency for protected endpoints
 
-## Evaluation Pipeline
+## Evaluation Pipeline & CI/CD
 
-The project includes a comprehensive evaluation system to measure AI feedback quality by comparing generated style coaching against reference answers using semantic similarity.
+The project includes a comprehensive evaluation system that measures AI feedback quality by comparing generated style coaching against reference answers using semantic similarity.
 
-### Quick Start
+### Automated CI/CD
 
-Run evaluation on all test sets:
+The evaluation pipeline runs automatically via `.github/workflows/evaluation.yml`:
+
+| Trigger | Experiment name | Result reported as |
+|---|---|---|
+| Pull request → `dev`/`main` | `pr-<number>` | Sticky PR comment with scores |
+| Merge to `main` | `main` | GitHub Actions job summary |
+| Merge to `dev` | `dev` | GitHub Actions job summary |
+| Manual dispatch | custom / `manual-<run>` | GitHub Actions job summary |
+
+#### Required GitHub Secrets
+
+Add these in **Repository → Settings → Secrets and variables → Actions**:
+
+| Secret | Description |
+|---|---|
+| `AI_API_KEY` | Google AI API key (Gemini + embeddings) |
+| `LANGFUSE_SECRET_KEY` | Langfuse secret key |
+| `LANGFUSE_PUBLIC_KEY` | Langfuse public key |
+| `LANGFUSE_HOST` | Langfuse host URL (e.g. `https://us.cloud.langfuse.com`) |
+
+### Quick start (local)
+
 ```bash
+# Run evaluation on all test sets
 make evaluate
-```
 
-Run evaluation on a specific set:
-```bash
+# Run with custom experiment name
+make evaluate-experiment NAME=prompt_v2
+
+# Run on a specific set
 make evaluate-set SET=set_1 EXP=baseline
 ```
 
-Run with custom experiment name:
-```bash
-make evaluate-experiment NAME=prompt_v2
-```
+### Langfuse — where to find results
 
-### Features
+All results are stored in **Datasets → `ai_feedback_eval` → Runs** — one row per example, one column per experiment. Each trace also captures the full prompt and a stable `pipeline_run` timestamp tag so you can always trace which exact prompt produced which score.
 
-- **Semantic Similarity**: Uses embeddings to measure how close generated feedback is to reference answers
-- **Langfuse Integration**: Tracks all evaluation runs for experiment comparison
-- **Category Analysis**: Scores each coaching category separately (Rhythm & Timing, Volume & Tone, etc.)
-- **Prompt Tuning**: Compare different prompt versions to systematically improve quality
-
-### Viewing Results in Langfuse
-
-After running an evaluation, open [cloud.langfuse.com](https://cloud.langfuse.com) and navigate to your project.
-
-**Traces** — each evaluated video creates one trace named `eval_<set>_<case>` tagged with the experiment name. Each trace contains the full generated feedback, extracted coaching, and metadata.
-
-**Scores** attached to every trace:
-
-| Score | Description |
-|---|---|
-| `overall_similarity` | Cosine similarity vs reference coaching (0–1) |
-| `similarity_<category>` | Per-category score (rhythm, volume, etc.) |
-| `passed` | 1.0 if score ≥ threshold, 0.0 otherwise |
-
-**Comparing experiments** — go to **Experiments** in the sidebar, select two runs (e.g. `baseline` vs `prompt_v2`) and Langfuse will diff the scores side by side.
-
-See [evaluation/README.md](evaluation/README.md) for full setup and usage details.
+See [evaluation/README.md](evaluation/README.md) for full setup, Langfuse navigation guide, and prompt-tuning workflow.
 
 ## Development
 

@@ -33,7 +33,7 @@ from evaluation.evaluator import FeedbackEvaluator
 @click.option(
     "--experiment",
     type=str,
-    default="baseline",
+    default="evaluation",
     show_default=True,
     help="Experiment name for tracking in Langfuse",
 )
@@ -94,6 +94,13 @@ def main(test_set, evaluate_all, experiment, language, api_url, verbose, no_lang
         experiment_name=experiment,
     )
 
+    # Ensure the Langfuse dataset exists and all items are synced
+    if langfuse_client:
+        logger.info("Setting up Langfuse dataset...")
+        evaluator.ensure_dataset()
+        evaluator.upsert_dataset_items()
+        logger.info("Langfuse dataset ready")
+
     # Run async evaluations
     all_results = asyncio.run(run_evaluations(evaluator, test_sets, language))
 
@@ -101,7 +108,7 @@ def main(test_set, evaluate_all, experiment, language, api_url, verbose, no_lang
     if all_results:
         evaluator.print_summary(all_results)
 
-        # Flush Langfuse
+        # Flush Langfuse (scores are already attached via item.run() context managers)
         if langfuse_client:
             logger.info("Flushing Langfuse data...")
             langfuse_client.flush()

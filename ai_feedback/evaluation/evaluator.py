@@ -1,9 +1,15 @@
 """
-Feedback evaluator that calls AI functions directly instead of via HTTP.
+Feedback evaluator that calls AI functions directly and logs via Langfuse Datasets.
+
+Each video/test-case is a *dataset item* (input + expected_output).
+Each experiment run (e.g. "baseline") becomes a *dataset run* column in
+Langfuse, with per-item scores and automatic run-level aggregation.
 """
 
+import hashlib
 import json
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 
@@ -19,6 +25,23 @@ from evaluation.extractor import (
     extract_style_coaching_by_category,
 )
 from evaluation.similarity import SimilarityCalculator
+from ai_feedback.constants.prompts import VIDEO_ANALYSIS_PROMPT
+
+DATASET_NAME = "ai_feedback_eval"
+
+
+def _prompt_snapshot(prompt: str) -> dict:
+    """Return a compact fingerprint + preview of a prompt string.
+
+    Stored in Langfuse metadata so you can always tell which exact prompt
+    version produced a given evaluation run.
+    """
+    digest = hashlib.sha256(prompt.encode()).hexdigest()[:12]
+    return {
+        "prompt_hash": digest,
+        "prompt_preview": prompt[:300].strip(),
+        "prompt_full": prompt,
+    }
 
 
 @dataclass
@@ -47,17 +70,114 @@ class FeedbackEvaluator:
         langfuse_client: Optional[Langfuse] = None,
         experiment_name: str = "baseline",
     ):
-        """
-        Initialize evaluator.
-
-        Args:
-            similarity_calculator: Calculator for semantic similarity
-            langfuse_client: Optional Langfuse client for tracking
-            experiment_name: Name of the experiment for tracking
-        """
         self.similarity_calculator = similarity_calculator
         self.langfuse_client = langfuse_client
         self.experiment_name = experiment_name
+        self.trace_name = "evaluation"
+        # Stable tag for every trace produced in this single evaluator run,
+        # format: evaluation_YYYYMMDD_HHMMSS
+        self.pipeline_run = f"evaluation_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+    # ------------------------------------------------------------------
+    # Dataset setup
+    # ------------------------------------------------------------------
+
+    def ensure_dataset(self) -> None:
+        """Get-or-create the Langfuse dataset (safe to call on every run)."""
+        if not self.langfuse_client:
+            return
+        try:
+            # Try to fetch first — if it exists we get it back without error
+            self.langfuse_client.get_dataset(DATASET_NAME)
+            logger.info(f"Dataset '{DATASET_NAME}' already exists — reusing it")
+        except Exception:
+            # Dataset doesn't exist yet — create it
+            try:
+                self.langfuse_client.create_dataset(
+                    name=DATASET_NAME,
+                    description=(
+                        "AI feedback evaluation dataset. "
+                        "Each item is one video test case with its reference coaching answer."
+                    ),
+                )
+                logger.info(f"Dataset '{DATASET_NAME}' created in Langfuse")
+            except Exception as create_err:
+                logger.error(f"Failed to create dataset '{DATASET_NAME}': {create_err}")
+                raise
+
+    def upsert_dataset_items(self) -> None:
+        """Sync all video test-cases from disk into the Langfuse dataset.
+
+        Uses the stable ``id`` field (``set_X/Y``) so repeated runs are
+        idempotent: existing items are **updated** with the latest payload
+        and reference answers (so changes on disk are reflected immediately),
+        and new items are created automatically.
+        """
+        if not self.langfuse_client:
+            return
+
+        sets_dir = Path(config.SETS_DIR)
+        if not sets_dir.exists():
+            logger.warning(f"Sets directory not found: {sets_dir}")
+            return
+
+        for set_dir in sorted(sets_dir.iterdir()):
+            if not set_dir.is_dir():
+                continue
+            test_set = set_dir.name
+
+            for video_file in sorted(set_dir.glob("*.*")):
+                test_case = video_file.stem
+                item_id = f"{test_set}/{test_case}"
+
+                # Load payload
+                payload_path = Path(config.CHALLENGES_DIR) / f"payload_{test_case}.json"
+                if not payload_path.exists():
+                    logger.warning(f"Payload not found, skipping item: {item_id}")
+                    continue
+
+                with open(payload_path) as f:
+                    payload = json.load(f)
+
+                # Load reference answer
+                answer_path = Path(config.ANSWERS_DIR) / test_set / f"{test_case}.json"
+                if not answer_path.exists():
+                    logger.warning(f"Reference answer not found, skipping item: {item_id}")
+                    continue
+
+                with open(answer_path) as f:
+                    reference_answer = json.load(f)
+
+                try:
+                    # Langfuse upserts by `id`: if the item exists its
+                    # input / expected_output are updated in-place, so
+                    # changes to payloads or reference answers are picked
+                    # up automatically on every run.
+                    self.langfuse_client.create_dataset_item(
+                        dataset_name=DATASET_NAME,
+                        id=item_id,
+                        input={
+                            "video_path": str(video_file),
+                            "test_set": test_set,
+                            "test_case": test_case,
+                            "question": payload.get("question", ""),
+                            "keyElements": payload.get("keyElements", []),
+                            "briefing": payload.get("briefing", ""),
+                        },
+                        expected_output=reference_answer,
+                    )
+                    logger.debug(f"Dataset item upserted: {item_id}")
+                except Exception as e:
+                    logger.warning(f"Failed to upsert dataset item {item_id}: {e}")
+
+        logger.info(
+            f"Dataset items synced to '{DATASET_NAME}' "
+            f"(new items created, changed items updated, unchanged items skipped by Langfuse)"
+        )
+
+    # ------------------------------------------------------------------
+    # Evaluation
+    # ------------------------------------------------------------------
 
     async def evaluate_test_case(
         self,
@@ -68,30 +188,19 @@ class FeedbackEvaluator:
         reference_answer: Dict[str, str],
         language: str = "English",
     ) -> EvaluationResult:
-        """
-        Evaluate a single test case.
+        """Evaluate a single test case and return the result.
 
-        Args:
-            test_set: Name of the test set
-            test_case: Test case identifier
-            video_path: Path to video file
-            payload: Feedback input payload
-            reference_answer: Reference coaching answer
-            language: Language for feedback generation
-
-        Returns:
-            EvaluationResult with similarity scores and metadata
+        If a Langfuse client is available, the trace is linked to the
+        dataset item via ``item.run()`` and scores are attached automatically.
         """
         logger.info(f"Evaluating {test_set}/{test_case}")
 
-        # Create script details from payload
         script_details = ScriptDetails(
             question=payload.get("question", ""),
             keyElements=payload.get("keyElements", []),
             briefing=payload.get("briefing", ""),
         )
 
-        # Generate feedback using AI function directly
         (
             feedback,
             average_score,
@@ -109,54 +218,39 @@ class FeedbackEvaluator:
             language=language,
         )
 
-        logger.info(
-            f"Generated feedback for {test_set}/{test_case}, session_id: {session_id}"
-        )
+        logger.info(f"Generated feedback for {test_set}/{test_case}, session_id: {session_id}")
 
-        # Extract style coaching from generated feedback
         generated_coaching = extract_style_coaching(feedback)
-
         if not generated_coaching:
-            logger.warning(
-                f"Could not extract style coaching from feedback for {test_set}/{test_case}"
-            )
-            logger.debug(
-                f"Feedback content:\n{feedback[:500]}..."
-            )  # Show first 500 chars
+            logger.warning(f"Could not extract style coaching for {test_set}/{test_case}")
+            logger.debug(f"Feedback content:\n{feedback[:500]}...")
             generated_coaching = ""
 
-        # Prepare reference coaching text
         reference_coaching = "\n\n".join(
             [f"{category}: {text}" for category, text in reference_answer.items()]
         )
 
-        # Calculate overall similarity
         overall_similarity = 0.0
         if generated_coaching and reference_coaching:
             overall_similarity = self.similarity_calculator.calculate_similarity(
                 generated_coaching, reference_coaching
             )
 
-        # Calculate category-wise similarities
-        category_similarities = {}
+        category_similarities: Dict[str, float] = {}
         generated_categories = extract_style_coaching_by_category(feedback)
 
         for category, reference_text in reference_answer.items():
             generated_text = generated_categories.get(category, "")
-
             if generated_text and reference_text:
-                similarity = self.similarity_calculator.calculate_similarity(
+                category_similarities[category] = self.similarity_calculator.calculate_similarity(
                     generated_text, reference_text
                 )
-                category_similarities[category] = similarity
             else:
                 category_similarities[category] = 0.0
 
-        # Determine if passed
         passed = overall_similarity >= SIMILARITY_THRESHOLD
 
-        # Create result
-        result = EvaluationResult(
+        return EvaluationResult(
             test_set=test_set,
             test_case=test_case,
             video_path=video_path,
@@ -170,85 +264,116 @@ class FeedbackEvaluator:
             confidence=confidence_score,
         )
 
-        # Log to Langfuse if available
-        if self.langfuse_client:
-            self._log_to_langfuse(result, payload, feedback)
+    async def evaluate_test_case_with_dataset(
+        self,
+        test_set: str,
+        test_case: str,
+        video_path: str,
+        payload: Dict[str, Any],
+        reference_answer: Dict[str, str],
+        language: str = "English",
+    ) -> EvaluationResult:
+        """Evaluate one test case, linking the trace to the Langfuse dataset run.
 
-        return result
+        Uses ``item.run()`` so the trace is automatically associated with the
+        dataset item and the experiment run, giving you the table view in Langfuse.
+        """
+        item_id = f"{test_set}/{test_case}"
 
-    def _log_to_langfuse(
-        self, result: EvaluationResult, payload: Dict[str, Any], full_feedback: str
-    ):
-        """Log evaluation result to Langfuse (v3 API)."""
+        if not self.langfuse_client:
+            # No Langfuse — fall back to plain evaluation
+            return await self.evaluate_test_case(
+                test_set, test_case, video_path, payload, reference_answer, language
+            )
+
         try:
-            trace_id = self.langfuse_client.create_trace_id()
+            dataset = self.langfuse_client.get_dataset(DATASET_NAME)
+            dataset_item = next((i for i in dataset.items if i.id == item_id), None)
+        except Exception as e:
+            logger.warning(f"Could not fetch dataset item {item_id}: {e}")
+            dataset_item = None
 
-            # Create the trace via a span
-            with self.langfuse_client.start_as_current_span(
-                name=f"eval_{result.test_set}_{result.test_case}",
-                input={"video_path": result.video_path, "payload": payload},
-                output={
-                    "feedback": full_feedback,
-                    "extracted_coaching": result.generated_coaching,
+        if dataset_item is None:
+            logger.warning(f"Dataset item '{item_id}' not found — running without dataset link")
+            return await self.evaluate_test_case(
+                test_set, test_case, video_path, payload, reference_answer, language
+            )
+
+        result: Optional[EvaluationResult] = None
+
+        try:
+            _ps = _prompt_snapshot(VIDEO_ANALYSIS_PROMPT)
+            with dataset_item.run(
+                run_name=self.experiment_name,
+                run_description=f"Experiment: {self.experiment_name}",
+                run_metadata={
+                    "threshold": SIMILARITY_THRESHOLD,
+                    "pipeline_run": self.pipeline_run,
+                    # Full prompt snapshot — one authoritative copy per run
+                    "video_analysis_prompt_hash": _ps["prompt_hash"],
+                    "video_analysis_prompt_preview": _ps["prompt_preview"],
+                    "video_analysis_prompt_full": _ps["prompt_full"],
                 },
-            ) as span:
-                span.update(
+            ) as root_span:
+                result = await self.evaluate_test_case(
+                    test_set, test_case, video_path, payload, reference_answer, language
+                )
+
+                # Attach the output to the span
+                root_span.update(
+                    name=self.trace_name,
+                    output={
+                        "generated_coaching": result.generated_coaching,
+                        "overall_similarity": result.overall_similarity,
+                        "passed": result.passed,
+                    },
                     metadata={
-                        "experiment": self.experiment_name,
-                        "test_set": result.test_set,
-                        "test_case": result.test_case,
                         "session_id": result.session_id,
                         "accuracy": result.accuracy,
                         "confidence": result.confidence,
+                        # Lightweight reference — hash lets you cross-check the run_metadata
+                        "video_analysis_prompt_hash": _ps["prompt_hash"],
                     },
-                    tags=[self.experiment_name, result.test_set],
-                )
-                trace_id = self.langfuse_client.get_current_trace_id()
-
-            # Log scores against the trace
-            self.langfuse_client.create_score(
-                trace_id=trace_id,
-                name="overall_similarity",
-                value=result.overall_similarity,
-                comment=f"Threshold: {SIMILARITY_THRESHOLD}",
-            )
-
-            for category, similarity in result.category_similarities.items():
-                score_name = f"similarity_{category.lower().replace(' ', '_').replace('&', 'and')}"
-                self.langfuse_client.create_score(
-                    trace_id=trace_id,
-                    name=score_name,
-                    value=similarity,
+                    tags=[self.experiment_name, test_set, self.pipeline_run],
                 )
 
-            self.langfuse_client.create_score(
-                trace_id=trace_id,
-                name="passed",
-                value=1.0 if result.passed else 0.0,
-                comment=f"Threshold: {SIMILARITY_THRESHOLD}",
-            )
+                # Score this item within the run
+                root_span.score_trace(
+                    name="overall_similarity",
+                    value=result.overall_similarity,
+                    comment=f"Threshold: {SIMILARITY_THRESHOLD}",
+                )
+                root_span.score_trace(
+                    name="passed",
+                    value=1.0 if result.passed else 0.0,
+                    comment=f"Threshold: {SIMILARITY_THRESHOLD}",
+                )
+                for category, similarity in result.category_similarities.items():
+                    score_name = (
+                        f"similarity_{category.lower().replace(' ', '_').replace('&', 'and')}"
+                    )
+                    root_span.score_trace(name=score_name, value=similarity)
 
-            logger.info(f"Logged evaluation to Langfuse, trace_id: {trace_id}")
+            logger.info(
+                f"Logged to dataset run '{self.experiment_name}': "
+                f"{item_id} → similarity={result.overall_similarity:.3f}"
+            )
 
         except Exception as e:
-            logger.warning(f"Failed to log to Langfuse: {e}")
+            logger.warning(f"Failed to log dataset run for {item_id}: {e}")
+            if result is None:
+                result = await self.evaluate_test_case(
+                    test_set, test_case, video_path, payload, reference_answer, language
+                )
+
+        return result
 
     async def evaluate_set(
         self, test_set: str, language: str = "English"
     ) -> List[EvaluationResult]:
-        """
-        Evaluate all test cases in a test set.
-
-        Args:
-            test_set: Name of the test set directory
-            language: Language for feedback generation
-
-        Returns:
-            List of evaluation results
-        """
+        """Evaluate all test cases in a test set."""
         results = []
 
-        # Get paths
         sets_dir = Path(config.SETS_DIR)
         set_dir = sets_dir / test_set
 
@@ -256,45 +381,32 @@ class FeedbackEvaluator:
             logger.error(f"Test set directory not found: {set_dir}")
             return results
 
-        # Get video files
         video_files = sorted(set_dir.glob("*.*"))
-
         if not video_files:
             logger.warning(f"No video files found in {set_dir}")
             return results
 
-        # Process each video - payload is loaded per video from its filename stem
-        # e.g. 1.webm -> payload_1.json
         for video_file in video_files:
-            test_case = video_file.stem  # filename without extension
+            test_case = video_file.stem
 
-            # Load payload for this specific video
-            payload_path = (
-                Path(config.CHALLENGES_DIR) / f"payload_{test_case}.json"
-            )
-
+            payload_path = Path(config.CHALLENGES_DIR) / f"payload_{test_case}.json"
             if not payload_path.exists():
                 logger.error(f"Payload file not found: {payload_path}")
                 continue
 
-            with open(payload_path, "r") as f:
+            with open(payload_path) as f:
                 payload = json.load(f)
 
-            # Load reference answer
-            answer_path = (
-                Path(config.ANSWERS_DIR) / test_set / f"{test_case}.json"
-            )
-
+            answer_path = Path(config.ANSWERS_DIR) / test_set / f"{test_case}.json"
             if not answer_path.exists():
                 logger.warning(f"Reference answer not found: {answer_path}")
                 continue
 
-            with open(answer_path, "r") as f:
+            with open(answer_path) as f:
                 reference_answer = json.load(f)
 
-            # Evaluate test case
             try:
-                result = await self.evaluate_test_case(
+                result = await self.evaluate_test_case_with_dataset(
                     test_set=test_set,
                     test_case=test_case,
                     video_path=str(video_file),
@@ -304,10 +416,9 @@ class FeedbackEvaluator:
                 )
                 results.append(result)
 
-                # Print result
                 status = "✓ PASS" if result.passed else "✗ FAIL"
                 logger.info(
-                    f"{test_set}/{test_case}: {result.overall_similarity:.3f} - {status}"
+                    f"{test_set}/{test_case}: {result.overall_similarity:.3f} — {status}"
                 )
 
             except Exception as e:
@@ -316,8 +427,8 @@ class FeedbackEvaluator:
 
         return results
 
-    def print_summary(self, results: List[EvaluationResult]):
-        """Print evaluation summary."""
+    def print_summary(self, results: List[EvaluationResult]) -> None:
+        """Print evaluation summary to the terminal."""
         if not results:
             logger.info("No results to summarize")
             return
@@ -325,27 +436,25 @@ class FeedbackEvaluator:
         total = len(results)
         passed = sum(1 for r in results if r.passed)
         avg_similarity = sum(r.overall_similarity for r in results) / total
+
         logger.info(
             f"""
-                    {'=' * 80}
-                    EVALUATION SUMMARY - Experiment: {self.experiment_name}
-                    {'=' * 80}
-                    Total test cases: {total}
-                    Passed: {passed} ({passed / total * 100:.1f}%)
-                    Failed: {total - passed} ({(total - passed) / total * 100:.1f}%)
-                    Average similarity: {avg_similarity:.3f}
-                    Threshold: {SIMILARITY_THRESHOLD}
-                    {'-' * 80}
-                    {'Test Case':<20} {'Similarity':<12} {'Status':<10}
-                    {'-' * 80}
-                    """
+{'=' * 80}
+EVALUATION SUMMARY — Experiment: {self.experiment_name}
+{'=' * 80}
+Total test cases : {total}
+Passed           : {passed} ({passed / total * 100:.1f}%)
+Failed           : {total - passed} ({(total - passed) / total * 100:.1f}%)
+Avg similarity   : {avg_similarity:.3f}
+Threshold        : {SIMILARITY_THRESHOLD}
+{'-' * 80}
+{'Test Case':<25} {'Similarity':<12} {'Status'}
+{'-' * 80}"""
         )
 
-        for result in results:
-            status = "✓ PASS" if result.passed else "✗ FAIL"
-            test_name = f"{result.test_set}/{result.test_case}"
-            logger.info(
-                f"{test_name:<20} {result.overall_similarity:<12.3f} {status:<10}"
-            )
+        for r in results:
+            status = "✓ PASS" if r.passed else "✗ FAIL"
+            test_name = f"{r.test_set}/{r.test_case}"
+            logger.info(f"{test_name:<25} {r.overall_similarity:<12.3f} {status}")
 
         logger.info("=" * 80 + "\n")
