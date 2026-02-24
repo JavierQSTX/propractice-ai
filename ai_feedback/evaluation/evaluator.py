@@ -8,6 +8,7 @@ Langfuse, with per-item scores and automatic run-level aggregation.
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -17,6 +18,7 @@ from langfuse import Langfuse
 from loguru import logger
 
 from ai_feedback.ai import get_feedback_from_video
+from ai_feedback.constants.prompts import VIDEO_ANALYSIS_PROMPT
 from ai_feedback.models import ScriptDetails
 from evaluation import config
 from evaluation.config import SIMILARITY_THRESHOLD
@@ -25,9 +27,13 @@ from evaluation.extractor import (
     extract_style_coaching_by_category,
 )
 from evaluation.similarity import SimilarityCalculator
-from ai_feedback.constants.prompts import VIDEO_ANALYSIS_PROMPT
 
 DATASET_NAME = "ai_feedback_eval"
+
+
+def _coaching_has_content(s: str) -> bool:
+    """True when the coaching string contains more than just category labels."""
+    return bool(re.sub(r'[^:]+:', '', s).strip())
 
 
 def _prompt_snapshot(prompt: str) -> dict:
@@ -65,10 +71,10 @@ class FeedbackEvaluator:
     """Evaluates AI feedback quality by comparing against reference answers."""
 
     def __init__(
-        self,
-        similarity_calculator: SimilarityCalculator,
-        langfuse_client: Optional[Langfuse] = None,
-        experiment_name: str = "baseline",
+            self,
+            similarity_calculator: SimilarityCalculator,
+            langfuse_client: Optional[Langfuse] = None,
+            experiment_name: str = "baseline",
     ):
         self.similarity_calculator = similarity_calculator
         self.langfuse_client = langfuse_client
@@ -180,13 +186,13 @@ class FeedbackEvaluator:
     # ------------------------------------------------------------------
 
     async def evaluate_test_case(
-        self,
-        test_set: str,
-        test_case: str,
-        video_path: str,
-        payload: Dict[str, Any],
-        reference_answer: Dict[str, str],
-        language: str = "English",
+            self,
+            test_set: str,
+            test_case: str,
+            video_path: str,
+            payload: Dict[str, Any],
+            reference_answer: Dict[str, str],
+            language: str = "English",
     ) -> EvaluationResult:
         """Evaluate a single test case and return the result.
 
@@ -224,28 +230,44 @@ class FeedbackEvaluator:
         if not generated_coaching:
             logger.warning(f"Could not extract style coaching for {test_set}/{test_case}")
             logger.debug(f"Feedback content:\n{feedback[:500]}...")
-            generated_coaching = ""
+            # Build a coaching string using the reference's category labels but with
+            # empty values.  This lets a "nothing-to-assess" generation match a
+            # "nothing expected" reference at similarity 1.0 rather than 0.0.
+            generated_coaching = "\n\n".join(
+                [f"{category}: " for category in reference_answer]
+            )
 
         reference_coaching = "\n\n".join(
             [f"{category}: {text}" for category, text in reference_answer.items()]
         )
 
-        overall_similarity = 0.0
-        if generated_coaching and reference_coaching:
+        if not _coaching_has_content(generated_coaching) and not _coaching_has_content(reference_coaching):
+            # Both sides are empty — the model correctly identified there was nothing
+            # to assess and the reference agrees.  Perfect match, no API call needed.
+            overall_similarity = 1.0
+        elif generated_coaching and reference_coaching:
             overall_similarity = self.similarity_calculator.calculate_similarity(
                 generated_coaching, reference_coaching
             )
+        else:
+            overall_similarity = 0.0
 
         category_similarities: Dict[str, float] = {}
         generated_categories = extract_style_coaching_by_category(feedback)
+        if not generated_categories:
+            generated_categories = {category: "" for category in reference_answer}
 
         for category, reference_text in reference_answer.items():
             generated_text = generated_categories.get(category, "")
-            if generated_text and reference_text:
+            if not generated_text and not reference_text:
+                # Both sides empty — correct "nothing to assess" prediction.
+                category_similarities[category] = 1.0
+            elif generated_text and reference_text:
                 category_similarities[category] = self.similarity_calculator.calculate_similarity(
                     generated_text, reference_text
                 )
             else:
+                # One side has content, the other doesn’t — genuine mismatch.
                 category_similarities[category] = 0.0
 
         passed = overall_similarity >= SIMILARITY_THRESHOLD
@@ -265,13 +287,13 @@ class FeedbackEvaluator:
         )
 
     async def evaluate_test_case_with_dataset(
-        self,
-        test_set: str,
-        test_case: str,
-        video_path: str,
-        payload: Dict[str, Any],
-        reference_answer: Dict[str, str],
-        language: str = "English",
+            self,
+            test_set: str,
+            test_case: str,
+            video_path: str,
+            payload: Dict[str, Any],
+            reference_answer: Dict[str, str],
+            language: str = "English",
     ) -> EvaluationResult:
         """Evaluate one test case, linking the trace to the Langfuse dataset run.
 
@@ -304,16 +326,20 @@ class FeedbackEvaluator:
         try:
             _ps = _prompt_snapshot(VIDEO_ANALYSIS_PROMPT)
             with dataset_item.run(
-                run_name=self.experiment_name,
-                run_description=f"Experiment: {self.experiment_name}",
-                run_metadata={
-                    "threshold": SIMILARITY_THRESHOLD,
-                    "pipeline_run": self.pipeline_run,
-                    # Full prompt snapshot — one authoritative copy per run
-                    "video_analysis_prompt_hash": _ps["prompt_hash"],
-                    "video_analysis_prompt_preview": _ps["prompt_preview"],
-                    "video_analysis_prompt_full": _ps["prompt_full"],
-                },
+                    # pipeline_run is unique per invocation (timestamp generated in
+                    # __init__), so each `make evaluate` call creates a NEW column
+                    # in Langfuse Dataset → Runs instead of overwriting the previous one.
+                    run_name=self.pipeline_run,
+                    run_description=f"Experiment: {self.experiment_name} | {self.pipeline_run}",
+                    run_metadata={
+                        "experiment": self.experiment_name,
+                        "threshold": SIMILARITY_THRESHOLD,
+                        "pipeline_run": self.pipeline_run,
+                        # Full prompt snapshot — one authoritative copy per run
+                        "video_analysis_prompt_hash": _ps["prompt_hash"],
+                        "video_analysis_prompt_preview": _ps["prompt_preview"],
+                        "video_analysis_prompt_full": _ps["prompt_full"],
+                    },
             ) as root_span:
                 result = await self.evaluate_test_case(
                     test_set, test_case, video_path, payload, reference_answer, language
@@ -369,7 +395,7 @@ class FeedbackEvaluator:
         return result
 
     async def evaluate_set(
-        self, test_set: str, language: str = "English"
+            self, test_set: str, language: str = "English"
     ) -> List[EvaluationResult]:
         """Evaluate all test cases in a test set."""
         results = []
@@ -439,17 +465,17 @@ class FeedbackEvaluator:
 
         logger.info(
             f"""
-{'=' * 80}
-EVALUATION SUMMARY — Experiment: {self.experiment_name}
-{'=' * 80}
-Total test cases : {total}
-Passed           : {passed} ({passed / total * 100:.1f}%)
-Failed           : {total - passed} ({(total - passed) / total * 100:.1f}%)
-Avg similarity   : {avg_similarity:.3f}
-Threshold        : {SIMILARITY_THRESHOLD}
-{'-' * 80}
-{'Test Case':<25} {'Similarity':<12} {'Status'}
-{'-' * 80}"""
+            {'=' * 80}
+            EVALUATION SUMMARY — Experiment: {self.experiment_name}
+            {'=' * 80}
+            Total test cases : {total}
+            Passed           : {passed} ({passed / total * 100:.1f}%)
+            Failed           : {total - passed} ({(total - passed) / total * 100:.1f}%)
+            Avg similarity   : {avg_similarity:.3f}
+            Threshold        : {SIMILARITY_THRESHOLD}
+            {'-' * 80}
+            {'Test Case':<25} {'Similarity':<12} {'Status'}
+            {'-' * 80}"""
         )
 
         for r in results:
