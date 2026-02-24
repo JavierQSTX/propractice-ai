@@ -22,6 +22,10 @@ class FeedbackResponse(BaseModel):
     feedback: str
     accuracy: int
     confidence: int
+    rhythm_timing_score: int
+    volume_tone_score: int
+    emotional_authenticity_score: int
+    confidence_detail_score: int
     session_id: str
 
 
@@ -41,19 +45,49 @@ class AudioAnalysis(BaseModel):
     speaking_style_analysis: str = Field(
         description="Comprehensive analysis of the vocal style of the speaker"
     )
+    rhythm_timing_score: int = Field(
+        description="""Score (0-100) assessing rhythm and timing:
+        90-100: Natural and conversational flow, excellent pacing
+        70-89: Good flow with minor stiffness or pacing issues
+        50-69: Noticeable stiffness, some robotic delivery
+        30-49: Frequently stiff or rushed, poor timing
+        0-29: Very robotic, off-beat, or extremely rushed
+        """
+    )
+    volume_tone_score: int = Field(
+        description="""Score (0-100) assessing volume and tone:
+        90-100: Professional, warm, empathetic, and helpful
+        70-89: Generally good tone with minor flatness
+        50-69: Somewhat monotone, lacks warmth
+        30-49: Flat delivery, minimal emotional texture
+        0-29: Very monotone, no variation
+        """
+    )
+    emotional_authenticity_score: int = Field(
+        description="""Score (0-100) assessing emotional authenticity:
+        90-100: Genuinely invested, authentic connection
+        70-89: Mostly authentic with occasional detachment
+        50-69: Some emotional connection but inconsistent
+        30-49: Limited emotional investment
+        0-29: Emotionally empty, just reading words
+        """
+    )
     confidence_score: int = Field(
-        description="""Score assessing the overall quality of the speech. Can have one of 2 values:
-        - 50, which means the speaker was extremely unsure of himself, he didn't really know the material
-        - 100, which means the speaker was moderately confident or confident, even if he had moments of doubt, unusual pauses, filler words etc.
+        description="""Score (0-100) assessing confidence and authority:
+        90-100: Assured, authoritative, bold choices
+        70-89: Confident with minor hesitations
+        50-69: Some confidence but noticeable uncertainty
+        30-49: Frequent hesitations, "umms," unsure
+        0-29: Very hesitant, lacks authority
         """
     )
 
 
 class KeywordMapping(BaseModel):
     keyword: str = Field(description="The required keyword")
-    transcript_equivalent: str | None = Field(
-        None,
-        description="Exact match or equivalent formulation, if found in the transcript",
+    transcript_equivalent: str = Field(
+        default="None",
+        description="Exact match or equivalent formulation, if found in the transcript. If not found the 'None' string should be used",
     )
 
 

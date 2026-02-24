@@ -1,3 +1,4 @@
+import uuid
 import subprocess
 from uuid import uuid4
 from langfuse import Langfuse
@@ -11,7 +12,7 @@ def read_audio(audio_filename: str) -> bytes:
 
 
 def convert_video_to_audio(video_filename: str) -> str:
-    audio_filename = video_filename.rsplit(".", 1)[0] + ".mp3"
+    audio_filename = video_filename.rsplit(".", 1)[0] + str(uuid.uuid4()) + ".mp3"
     subprocess.run(
         ["ffmpeg", "-i", video_filename, "-q:a", "0", "-map", "a", audio_filename],
         check=True,
