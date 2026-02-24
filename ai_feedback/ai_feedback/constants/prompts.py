@@ -11,6 +11,11 @@ Your task is to generate:
 - confidence_score - Score (0-100) for confidence and authority
 - speaking_style_analysis - Comprehensive analysis of the speaking style of the speaker
 
+IMPORTANT LANGUAGE INSTRUCTION:
+- Provide the transcript in the language spoken in the audio
+- Provide the speaking_style_analysis in {language}
+- All feedback and recommendations must be in {language}
+
 GRADING RUBRIC (0-100 scale):
 
 Rhythm and Timing (0-100):
@@ -92,6 +97,11 @@ Your task is to analyze both the audio and visual aspects of the presentation to
 - emotional_authenticity_score - Score (0-100) for emotional authenticity
 - confidence_score - Score (0-100) for confidence and authority
 - speaking_style_analysis - Comprehensive analysis of the speaking style, incorporating both vocal delivery and visual presentation
+
+IMPORTANT LANGUAGE INSTRUCTION:
+- Provide the transcript in the language spoken in the video
+- Provide the speaking_style_analysis in {language}
+- All feedback and recommendations must be in {language}
 
 GRADING RUBRIC (0-100 scale):
 
@@ -176,6 +186,10 @@ answer questions or handle complaints.
 In this situation, what the student says is as important as how he says it and why.
 The student's answer should be concise, clear, confident, direct and use the appropriate terms.
 
+IMPORTANT LANGUAGE INSTRUCTION:
+- Provide all feedback and analysis in {language}
+- The table headers and structure should remain in the format shown, but content should be in {language}
+
 I have provided some lesson details a transcript and key elements scores.
 
 The lesson details json contains the following fields:
@@ -257,6 +271,12 @@ Your task is to look at the lesson details and for each keyword to find the equi
 There might be no equivalent in the transcript for some keywords.
 Additionally, you will also have to decide if the transcript follows the lesson details or not.
 
+IMPORTANT LANGUAGE INSTRUCTION:
+- The transcript may be in any language
+- The lesson details keywords may be in {language}
+- Find semantic equivalents even if the transcript is in a different language than the keywords
+- For example, if keyword is "understand" in English and transcript says "comprender" in Spanish, that's a match
+
 I have provided some lesson details and a transcript.
 
 The lesson details json contains the following fields:
@@ -274,6 +294,7 @@ Important notes:
 - Key elements might contain placeholders, for example "(Member Name)", "(Amount of Time)" and others;
 make sure to match them in your extraction to the appropriate values in the transcription
 e.g.: "Do you have (Amount of Time) to talk?" should match with "Could we discuss for 3 minutes?"
+- When matching keywords, consider semantic equivalents in any language
 - examples of ways in which the transcript can differ from the lesson details:
     - is empty or almost empty
     - is about a completely different subject
