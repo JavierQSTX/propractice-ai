@@ -19,3 +19,14 @@ deploy: generate-requirements
 
 deploy-dev: generate-requirements
 	./scripts/deploy-dev.sh
+
+# Evaluation commands
+evaluate:
+	cd evaluation && poetry run python entrypoint.py --all --experiment baseline
+
+evaluate-set:
+	cd evaluation && poetry run python entrypoint.py --set $(SET) --experiment $(EXP)
+
+evaluate-experiment:
+	cd evaluation && poetry run python entrypoint.py --all --experiment $(NAME)
+

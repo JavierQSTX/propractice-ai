@@ -1,0 +1,142 @@
+name: Evaluation Pipeline
+
+on:
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - 'ai_feedback/**'
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      experiment_name:
+        description: 'Experiment name (defaults to branch + run number)'
+        required: false
+        default: ''
+
+defaults:
+  run:
+    working-directory: ai_feedback
+
+jobs:
+  evaluate:
+    if: github.event.pull_request.draft == false
+    name: Run AI Feedback Evaluation
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write   # needed to post PR comments
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install system dependencies (FFmpeg)
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Cache Poetry virtualenv
+        uses: actions/cache@v4
+        with:
+          path: ai_feedback/.venv
+          key: venv-${{ runner.os }}-${{ hashFiles('ai_feedback/pyproject.toml', 'ai_feedback/poetry.lock') }}
+          restore-keys: |
+            venv-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: poetry install --no-interaction
+
+      # ---------------------------------------------------------------
+      # Derive a stable, human-readable experiment name:
+      #   PR  →  pr-<number>
+      #   push to main/dev  →  main / dev
+      #   manual dispatch with input  →  <input>
+      #   manual dispatch without input  →  manual-<run_number>
+      # ---------------------------------------------------------------
+      - name: Resolve experiment name
+        id: exp
+        run: |
+          if [ -n "${{ github.event.inputs.experiment_name }}" ]; then
+            NAME="${{ github.event.inputs.experiment_name }}"
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            NAME="pr-${{ github.event.number }}"
+          else
+            NAME="${{ github.ref_name }}"
+          fi
+          echo "name=${NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Write .env file
+        run: |
+          cat > .env << 'EOF'
+          AI_API_KEY=${{ secrets.AI_API_KEY }}
+          LANGFUSE_SECRET_KEY=${{ secrets.LANGFUSE_SECRET_KEY }}
+          LANGFUSE_PUBLIC_KEY=${{ secrets.LANGFUSE_PUBLIC_KEY }}
+          LANGFUSE_HOST=${{ secrets.LANGFUSE_HOST }}
+          LOGIN_USERNAME=ci
+          LOGIN_PASSWORD=ci
+          JWT_SECRET_KEY=ci-secret
+          EOF
+
+      - name: Run evaluation
+        id: eval
+        run: |
+          cd evaluation
+          poetry run python entrypoint.py \
+            --all \
+            --experiment "${{ steps.exp.outputs.name }}" \
+            --verbose \
+            2>&1 | tee eval_output.txt
+
+          # Parse aggregated score and pass-rate from the summary block
+          AVG=$(grep -oP 'Avg similarity\s+:\s+\K[\d.]+' eval_output.txt || echo "n/a")
+          PASS_RATE=$(grep -oP 'Passed\s+:\s+\d+\s+\(\K[\d.]+(?=%)' eval_output.txt || echo "n/a")
+          TOTAL=$(grep -oP 'Total test cases\s+:\s+\K\d+' eval_output.txt || echo "n/a")
+          PASSED=$(grep -oP 'Passed\s+:\s+\K\d+' eval_output.txt | head -1 || echo "n/a")
+
+          echo "avg_similarity=${AVG}" >> "$GITHUB_OUTPUT"
+          echo "pass_rate=${PASS_RATE}" >> "$GITHUB_OUTPUT"
+          echo "total=${TOTAL}" >> "$GITHUB_OUTPUT"
+          echo "passed=${PASSED}" >> "$GITHUB_OUTPUT"
+
+      # Post result as a PR comment (only on pull_request events)
+      - name: Post evaluation result to PR
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: evaluation-results
+          message: |
+            ## 🧪 Evaluation Results — `${{ steps.exp.outputs.name }}`
+
+            | Metric | Value |
+            |---|---|
+            | **Avg Similarity** | `${{ steps.eval.outputs.avg_similarity }}` |
+            | **Pass Rate** | `${{ steps.eval.outputs.pass_rate }}%` |
+            | **Passed / Total** | `${{ steps.eval.outputs.passed }} / ${{ steps.eval.outputs.total }}` |
+
+            > 📊 Full per-example breakdown: [Langfuse Dataset → Runs](${{ secrets.LANGFUSE_HOST }}/project/datasets/ai_feedback_eval) — filter by experiment **`${{ steps.exp.outputs.name }}`**
+
+      # Surface scores as step summary (visible on every run, not just PRs)
+      - name: Write job summary
+        if: always()
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" << EOF
+          ## 🧪 Evaluation — \`${{ steps.exp.outputs.name }}\`
+
+          | Metric | Value |
+          |---|---|
+          | **Avg Similarity** | \`${{ steps.eval.outputs.avg_similarity }}\` |
+          | **Pass Rate** | \`${{ steps.eval.outputs.pass_rate }}%\` |
+          | **Passed / Total** | \`${{ steps.eval.outputs.passed }} / ${{ steps.eval.outputs.total }}\` |
+
+          View full results in [Langfuse](${{ secrets.LANGFUSE_HOST }})
+          EOF

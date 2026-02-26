@@ -1,0 +1,54 @@
+{
+  "challenge": "2",
+  "question": "State your New Member Entry Line for the Member Review.",
+  "briefing": "<p>In this Module, you will learn what to say for transitioning to the Member Review after Problem Resolution, the New Member Entry Line, and the Existing Member Entry Line</p>",
+  "keyElements": [
+    {
+      "script": "It's my primary responsibility to help Members achieve their financial goals and make their banking more convenient .",
+      "keywords": [
+        "my",
+        "responsibility",
+        "help Members achieve",
+        "financial goals",
+        "make",
+        "banking",
+        "convenient"
+      ]
+    },
+    {
+      "script": "To better understand your current and future financial needs , I would like to ask you a few questions .",
+      "keywords": [
+        "understand",
+        "current",
+        "future financial needs",
+        "ask",
+        "questions"
+      ]
+    },
+    {
+      "script": "This usually takes only about 10-15 minutes .",
+      "keywords": [
+        "10-15 minutes"
+      ]
+    },
+    {
+      "script": "It is a complimentary service we provide and, of course, everything will remain confidential .",
+      "keywords": [
+        "complimentary service",
+        "confidential"
+      ]
+    },
+    {
+      "script": "I'd like to get started right now .",
+      "keywords": [
+        "get started",
+        "now"
+      ]
+    }
+  ],
+  "user_id": "LID--fff108e0b0682e0d2e0108a875739904",
+  "tags": [
+    "MFR Mod1:Entry Lines",
+    "Challenge 2"
+  ]
+}
