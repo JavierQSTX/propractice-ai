@@ -388,9 +388,9 @@ async def get_feedback(
     )
     final_feedback = f"{text_analysis}*only bolded keywords are mentioned during the recording\n\n"
 
-    # Assemble structured response
+    # Concatenate style assessments into final_feedback
     if not keyword_equivalents.transcript_matches_lesson:
-        # If matching failed, use fallback "skipped" message and 0 scores
+        final_feedback += f"## Style Coaching Recommendations\n\n{SPEECH_ANALYSIS_SKIPPED}"
         skipped_category = StyleCategory(assessment=SPEECH_ANALYSIS_SKIPPED, score=0)
         return {
             "feedback": final_feedback,
@@ -400,8 +400,16 @@ async def get_feedback(
             "rhythm_and_timing": skipped_category,
             "volume_and_tone": skipped_category,
             "emotional_authenticity": skipped_category,
-            "confidence": skipped_category,
+            "confidence_detail": skipped_category,
         }
+
+    final_feedback += (
+        "## Style Coaching Recommendations\n\n"
+        f"* Rhythm & Timing: {audio_analysis.rhythm_and_timing.assessment}\n"
+        f"* Volume and Tone: {audio_analysis.volume_and_tone.assessment}\n"
+        f"* Emotional Authenticity: {audio_analysis.emotional_authenticity.assessment}\n"
+        f"* Confidence: {audio_analysis.confidence.assessment}"
+    )
 
     # Normal case: return full structured data
     confidence_score = int(
@@ -568,9 +576,9 @@ async def get_feedback_from_video(
     )
     final_feedback = f"{text_analysis}*only bolded keywords are mentioned during the recording\n\n"
 
-    # Assemble structured response
+    # Concatenate style assessments into final_feedback
     if not keyword_equivalents.transcript_matches_lesson:
-        # If matching failed, use fallback "skipped" message and 0 scores
+        final_feedback += f"## Style Coaching Recommendations\n\n{SPEECH_ANALYSIS_SKIPPED}"
         skipped_category = StyleCategory(assessment=SPEECH_ANALYSIS_SKIPPED, score=0)
         return {
             "feedback": final_feedback,
@@ -580,9 +588,17 @@ async def get_feedback_from_video(
             "rhythm_and_timing": skipped_category,
             "volume_and_tone": skipped_category,
             "emotional_authenticity": skipped_category,
-            "confidence": skipped_category,
+            "confidence_detail": skipped_category,
             "visual_presence": skipped_category,
         }
+
+    final_feedback += (
+        "## Style Coaching Recommendations\n\n"
+        f"* Rhythm & Timing: {video_analysis.rhythm_and_timing.assessment}\n"
+        f"* Volume and Tone: {video_analysis.volume_and_tone.assessment}\n"
+        f"* Emotional Authenticity: {video_analysis.emotional_authenticity.assessment}\n"
+        f"* Confidence: {video_analysis.confidence.assessment}"
+    )
 
     # Normal case: return full structured data
     confidence_score = int(
@@ -603,7 +619,5 @@ async def get_feedback_from_video(
         "rhythm_and_timing": video_analysis.rhythm_and_timing,
         "volume_and_tone": video_analysis.volume_and_tone,
         "emotional_authenticity": video_analysis.emotional_authenticity,
-        "confidence": video_analysis.confidence,
-        "visual_presence": video_analysis.visual_presence,
+        "confidence_detail": video_analysis.confidence,
     }
-

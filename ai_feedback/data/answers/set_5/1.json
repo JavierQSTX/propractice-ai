@@ -1,6 +1,22 @@
 {
-  "Rhythm and Timing": "After “achieve their financial goals,” you move on quickly. That’s the value line—give it space to land. Add a brief pause, then restart smoothly with “Because circumstances change over time…” so the message feels inviting, not rushed.",
-  "Volume and Tone": "Your tone is professional and clear. Add warmth on “save time and money” to increase helpfulness—smile slightly and round the voice on “save,” then soften the ending so it sounds like a benefit for them, not a pitch.",
-  "Emotional Authenticity": "Your sincerity comes through, but “complimentary” and “confidential” should sound reassuring. Slow down slightly and lower your tone on “confidential.” Try: “This is complimentary—and completely confidential,” then let it land before continuing.",
-  "Confidence": "Your delivery is steady; strengthen the close so it feels decisive. Remove softeners and lead with a direct invitation: “Let’s get started now—does 10 to 15 minutes work?” Take a natural breath before the question to project leadership."
+  "feedback": "## Content Assessment Placeholder\n\n(Original evaluation answers didn't have feedback field, adding it for structure match)",
+  "accuracy": 0,
+  "confidence": 0,
+  "session_id": "ref_1.json",
+  "rhythm_and_timing": {
+    "assessment": "After \u201cachieve their financial goals,\u201d you move on quickly. That\u2019s the value line\u2014give it space to land. Add a brief pause, then restart smoothly with \u201cBecause circumstances change over time\u2026\u201d so the message feels inviting, not rushed.",
+    "score": 0
+  },
+  "volume_and_tone": {
+    "assessment": "Your tone is professional and clear. Add warmth on \u201csave time and money\u201d to increase helpfulness\u2014smile slightly and round the voice on \u201csave,\u201d then soften the ending so it sounds like a benefit for them, not a pitch.",
+    "score": 0
+  },
+  "emotional_authenticity": {
+    "assessment": "Your sincerity comes through, but \u201ccomplimentary\u201d and \u201cconfidential\u201d should sound reassuring. Slow down slightly and lower your tone on \u201cconfidential.\u201d Try: \u201cThis is complimentary\u2014and completely confidential,\u201d then let it land before continuing.",
+    "score": 0
+  },
+  "confidence_detail": {
+    "assessment": "Your delivery is steady; strengthen the close so it feels decisive. Remove softeners and lead with a direct invitation: \u201cLet\u2019s get started now\u2014does 10 to 15 minutes work?\u201d Take a natural breath before the question to project leadership.",
+    "score": 0
+  }
 }

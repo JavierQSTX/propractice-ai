@@ -217,6 +217,7 @@ class FeedbackEvaluator:
 
         feedback = result["feedback"]
         average_score = result["accuracy"]
+        confidence_score = result.get("confidence", 0)
         session_id = result["session_id"]
 
         logger.info(f"Generated feedback for {test_set}/{test_case}, session_id: {session_id}")
@@ -226,7 +227,7 @@ class FeedbackEvaluator:
             "rhythm_and_timing": result.get("rhythm_and_timing").assessment if result.get("rhythm_and_timing") else "",
             "volume_and_tone": result.get("volume_and_tone").assessment if result.get("volume_and_tone") else "",
             "emotional_authenticity": result.get("emotional_authenticity").assessment if result.get("emotional_authenticity") else "",
-            "confidence": result.get("confidence").assessment if result.get("confidence") else "",
+            "confidence_detail": result.get("confidence_detail").assessment if result.get("confidence_detail") else "",
         }
 
         # Normalize "skipped" message to empty string for comparison
@@ -240,20 +241,8 @@ class FeedbackEvaluator:
             if isinstance(val, dict) and "assessment" in val:
                 reference_categories[key] = val["assessment"]
             elif isinstance(val, str) and key in generated_categories:
-                # Handle legacy format where keys might be Title Case or snake_case
+                # Handle case where reference is just a string and key matches
                 reference_categories[key] = val
-        
-        # If there's a mismatch in keys (e.g. Title Case vs snake_case in legacy), map them
-        legacy_mapping = {
-            "Rhythm and Timing": "rhythm_and_timing",
-            "Volume and Tone": "volume_and_tone",
-            "Emotional Authenticity": "emotional_authenticity",
-            "Confidence": "confidence"
-        }
-        for old_key, new_key in legacy_mapping.items():
-            if old_key in reference_answer and new_key not in reference_categories:
-                val = reference_answer[old_key]
-                reference_categories[new_key] = val["assessment"] if isinstance(val, dict) else val
 
         generated_coaching = "\n\n".join(
             [f"{cat}: {text}" for cat, text in generated_categories.items()]

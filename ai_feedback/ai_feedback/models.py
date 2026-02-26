@@ -44,7 +44,7 @@ class FeedbackResponse(BaseModel):
     rhythm_and_timing: Optional[StyleCategory] = None
     volume_and_tone: Optional[StyleCategory] = None
     emotional_authenticity: Optional[StyleCategory] = None
-    confidence: Optional[StyleCategory] = None
+    confidence_detail: Optional[StyleCategory] = None
 
 
 class FeedbackResponseLegacy(BaseModel):
@@ -61,12 +61,12 @@ class FeedbackResponseLegacy(BaseModel):
 class StructuredFeedbackResponse(BaseModel):
     feedback: str
     accuracy: int
+    confidence: int
     session_id: str
     rhythm_and_timing: StyleCategory
     volume_and_tone: StyleCategory
     emotional_authenticity: StyleCategory
-    confidence: StyleCategory
-    visual_presence: Optional[StyleCategory] = None
+    confidence_detail: StyleCategory
 
 
 class UserLikeRequest(BaseModel):
