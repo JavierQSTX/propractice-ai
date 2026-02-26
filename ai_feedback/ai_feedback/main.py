@@ -16,7 +16,7 @@ from fastapi import (
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
-from ai_feedback.ai import get_feedback, judge_feedback, get_feedback_from_video
+from ai_feedback.ai import get_feedback, judge_feedback, get_feedback_from_video, get_feedback_legacy
 from ai_feedback.authentication import verify_token, create_access_token
 from ai_feedback.config import settings
 from ai_feedback.models import (
@@ -26,6 +26,8 @@ from ai_feedback.models import (
     SupportedLanguage,
     UserLikeRequest,
     LangfuseTracesRequest,
+    StructuredFeedbackResponse,
+    FeedbackResponseLegacy,
 )
 from ai_feedback.utils import (
     convert_video_to_audio,
@@ -61,7 +63,7 @@ async def login(request: Request):
 
 
 @app.post(
-    "/feedback", response_model=FeedbackResponse, dependencies=[Depends(verify_token)]
+    "/feedback", response_model=FeedbackResponseLegacy, dependencies=[Depends(verify_token)]
 )
 async def generate_feedback(
     video: UploadFile = File(...), 
@@ -89,32 +91,14 @@ async def generate_feedback(
 
         audio_filename = convert_video_to_audio(video_filename)
 
-        (
-            feedback,
-            average_score,
-            confidence_score,
-            rhythm_timing,
-            volume_tone,
-            emotional_authenticity,
-            confidence_detail,
-            session_id,
-        ) = await get_feedback(
+        result = await get_feedback_legacy(
             audio_filename=audio_filename,
             script_details=script_details,
             user_id=feedback_input.user_id,
             tags=feedback_input.tags,
             language=language.value,
         )
-        return FeedbackResponse(
-            feedback=feedback,
-            accuracy=average_score,
-            confidence=confidence_score,
-            rhythm_timing_score=rhythm_timing,
-            volume_tone_score=volume_tone,
-            emotional_authenticity_score=emotional_authenticity,
-            confidence_detail_score=confidence_detail,
-            session_id=session_id,
-        )
+        return FeedbackResponseLegacy(**result)
 
     except subprocess.CalledProcessError as e:
         raise HTTPException(status_code=500, detail=f"FFmpeg error: {e}")
@@ -155,16 +139,7 @@ async def generate_feedback_video(
             f.write(video_content)
 
         # Process video directly using multimodal analysis
-        (
-            feedback,
-            average_score,
-            confidence_score,
-            rhythm_timing,
-            volume_tone,
-            emotional_authenticity,
-            confidence_detail,
-            session_id,
-        ) = await get_feedback_from_video(
+        result = await get_feedback_from_video(
             video_filename=video_filename,
             script_details=script_details,
             user_id=feedback_input.user_id,
@@ -172,16 +147,7 @@ async def generate_feedback_video(
             language=language.value,
         )
         
-        return FeedbackResponse(
-            feedback=feedback,
-            accuracy=average_score,
-            confidence=confidence_score,
-            rhythm_timing_score=rhythm_timing,
-            volume_tone_score=volume_tone,
-            emotional_authenticity_score=emotional_authenticity,
-            confidence_detail_score=confidence_detail,
-            session_id=session_id,
-        )
+        return FeedbackResponse(**result)
 
     except Exception as e:
         logger.error(str(e))
@@ -190,6 +156,62 @@ async def generate_feedback_video(
             status_code=500, detail=f"{str(e)}\n\n{traceback.format_exc()}"
         )
 
+
+
+@app.post(
+    "/feedback_structured", 
+    response_model=StructuredFeedbackResponse, 
+    dependencies=[Depends(verify_token)]
+)
+async def generate_feedback_structured(
+    video: UploadFile = File(...), 
+    feedback_input_str: str = Form(...),
+    language: SupportedLanguage = Form(SupportedLanguage.ENGLISH),
+    use_video_analysis: bool = Form(True),
+):
+    """
+    Generate fully structured feedback. 
+    By default uses multimodal video analysis, falls back to audio-only if use_video_analysis is False.
+    """
+    try:
+        feedback_input = FeedbackInput.model_validate_json(feedback_input_str)
+        script_details = ScriptDetails(
+            question=feedback_input.question,
+            keyElements=feedback_input.keyElements,
+            briefing=feedback_input.briefing,
+        )
+
+        video_content = await video.read()
+        video_filename = f"/tmp/{uuid.uuid4()}_{video.filename}"
+        with open(video_filename, "wb") as f:
+            f.write(video_content)
+
+        if use_video_analysis:
+            result = await get_feedback_from_video(
+                video_filename=video_filename,
+                script_details=script_details,
+                user_id=feedback_input.user_id,
+                tags=feedback_input.tags,
+                language=language.value,
+            )
+        else:
+            audio_filename = convert_video_to_audio(video_filename)
+            result = await get_feedback(
+                audio_filename=audio_filename,
+                script_details=script_details,
+                user_id=feedback_input.user_id,
+                tags=feedback_input.tags,
+                language=language.value,
+            )
+        
+        return StructuredFeedbackResponse(**result)
+
+    except Exception as e:
+        logger.error(str(e))
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500, detail=f"{str(e)}\n\n{traceback.format_exc()}"
+        )
 
 
 @app.post("/like", dependencies=[Depends(verify_token)])

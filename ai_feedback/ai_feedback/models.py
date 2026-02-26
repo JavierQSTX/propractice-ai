@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel, Field
 from enum import Enum
 
@@ -30,7 +31,23 @@ class FeedbackInput(ScriptDetails):
     user_id: str | None = None
 
 
+class StyleCategory(BaseModel):
+    assessment: str = Field(description="Actionable coaching feedback for this category")
+    score: int = Field(description="Score from 0 to 100")
+
+
 class FeedbackResponse(BaseModel):
+    feedback: str
+    accuracy: int
+    confidence: int
+    session_id: str
+    rhythm_and_timing: Optional[StyleCategory] = None
+    volume_and_tone: Optional[StyleCategory] = None
+    emotional_authenticity: Optional[StyleCategory] = None
+    confidence: Optional[StyleCategory] = None
+
+
+class FeedbackResponseLegacy(BaseModel):
     feedback: str
     accuracy: int
     confidence: int
@@ -39,6 +56,17 @@ class FeedbackResponse(BaseModel):
     emotional_authenticity_score: int
     confidence_detail_score: int
     session_id: str
+
+
+class StructuredFeedbackResponse(BaseModel):
+    feedback: str
+    accuracy: int
+    session_id: str
+    rhythm_and_timing: StyleCategory
+    volume_and_tone: StyleCategory
+    emotional_authenticity: StyleCategory
+    confidence: StyleCategory
+    visual_presence: Optional[StyleCategory] = None
 
 
 class UserLikeRequest(BaseModel):
@@ -54,11 +82,8 @@ class AudioAnalysis(BaseModel):
     transcript: str = Field(
         description="Complete and accurate transcript of the audio, including mispronounciations and filler words"
     )
-    speaking_style_analysis: str = Field(
-        description="Comprehensive analysis of the vocal style of the speaker"
-    )
-    rhythm_timing_score: int = Field(
-        description="""Score (0-100) assessing rhythm and timing:
+    rhythm_and_timing: StyleCategory = Field(
+        description="""Analysis and score (0-100) for rhythm and timing:
         90-100: Natural and conversational flow, excellent pacing
         70-89: Good flow with minor stiffness or pacing issues
         50-69: Noticeable stiffness, some robotic delivery
@@ -66,7 +91,7 @@ class AudioAnalysis(BaseModel):
         0-29: Very robotic, off-beat, or extremely rushed
         """
     )
-    volume_tone_score: int = Field(
+    volume_and_tone: StyleCategory = Field(
         description="""Score (0-100) assessing volume and tone:
         90-100: Professional, warm, empathetic, and helpful
         70-89: Generally good tone with minor flatness
@@ -75,7 +100,7 @@ class AudioAnalysis(BaseModel):
         0-29: Very monotone, no variation
         """
     )
-    emotional_authenticity_score: int = Field(
+    emotional_authenticity: StyleCategory = Field(
         description="""Score (0-100) assessing emotional authenticity:
         90-100: Genuinely invested, authentic connection
         70-89: Mostly authentic with occasional detachment
@@ -84,7 +109,7 @@ class AudioAnalysis(BaseModel):
         0-29: Emotionally empty, just reading words
         """
     )
-    confidence_score: int = Field(
+    confidence: StyleCategory = Field(
         description="""Score (0-100) assessing confidence and authority:
         90-100: Assured, authoritative, bold choices
         70-89: Confident with minor hesitations
@@ -93,6 +118,23 @@ class AudioAnalysis(BaseModel):
         0-29: Very hesitant, lacks authority
         """
     )
+    visual_presence: Optional[StyleCategory] = Field(
+        default=None,
+        description="Analysis and score (0-100) for visual presence (only for video)"
+    )
+
+
+class AudioAnalysisLegacy(BaseModel):
+    transcript: str = Field(
+        description="Complete and accurate transcript of the audio, including mispronounciations and filler words"
+    )
+    speaking_style_analysis: str = Field(
+        description="Comprehensive analysis of the vocal style of the speaker"
+    )
+    rhythm_timing_score: int = Field(description="Score (0-100) for rhythm and timing")
+    volume_tone_score: int = Field(description="Score (0-100) for volume and tone")
+    emotional_authenticity_score: int = Field(description="Score (0-100) for emotional authenticity")
+    confidence_score: int = Field(description="Score (0-100) for confidence and authority")
 
 
 class KeywordMapping(BaseModel):

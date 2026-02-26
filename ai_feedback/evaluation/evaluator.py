@@ -18,7 +18,7 @@ from langfuse import Langfuse
 from loguru import logger
 
 from ai_feedback.ai import get_feedback_from_video
-from ai_feedback.constants.prompts import VIDEO_ANALYSIS_PROMPT
+from ai_feedback.constants.prompts import VIDEO_ANALYSIS_PROMPT, SPEECH_ANALYSIS_SKIPPED
 from ai_feedback.models import ScriptDetails
 from evaluation import config
 from evaluation.config import SIMILARITY_THRESHOLD
@@ -207,16 +207,7 @@ class FeedbackEvaluator:
             briefing=payload.get("briefing", ""),
         )
 
-        (
-            feedback,
-            average_score,
-            confidence_score,
-            rhythm_timing,
-            volume_tone,
-            emotional_authenticity,
-            confidence_detail,
-            session_id,
-        ) = await get_feedback_from_video(
+        result = await get_feedback_from_video(
             video_filename=video_path,
             script_details=script_details,
             user_id=payload.get("user_id", "evaluation"),
@@ -224,26 +215,56 @@ class FeedbackEvaluator:
             language=language,
         )
 
+        feedback = result["feedback"]
+        average_score = result["accuracy"]
+        session_id = result["session_id"]
+
         logger.info(f"Generated feedback for {test_set}/{test_case}, session_id: {session_id}")
 
-        generated_coaching = extract_style_coaching(feedback)
-        if not generated_coaching:
-            logger.warning(f"Could not extract style coaching for {test_set}/{test_case}")
-            logger.debug(f"Feedback content:\n{feedback[:500]}...")
-            # Build a coaching string using the reference's category labels but with
-            # empty values.  This lets a "nothing-to-assess" generation match a
-            # "nothing expected" reference at similarity 1.0 rather than 0.0.
-            generated_coaching = "\n\n".join(
-                [f"{category}: " for category in reference_answer]
-            )
+        # Map structured categories for comparison
+        generated_categories = {
+            "rhythm_and_timing": result.get("rhythm_and_timing").assessment if result.get("rhythm_and_timing") else "",
+            "volume_and_tone": result.get("volume_and_tone").assessment if result.get("volume_and_tone") else "",
+            "emotional_authenticity": result.get("emotional_authenticity").assessment if result.get("emotional_authenticity") else "",
+            "confidence": result.get("confidence").assessment if result.get("confidence") else "",
+        }
+
+        # Normalize "skipped" message to empty string for comparison
+        for cat, text in generated_categories.items():
+            if SPEECH_ANALYSIS_SKIPPED in text:
+                generated_categories[cat] = ""
+
+        # Prepare reference categories and normalize them for comparison
+        reference_categories = {}
+        for key, val in reference_answer.items():
+            if isinstance(val, dict) and "assessment" in val:
+                reference_categories[key] = val["assessment"]
+            elif isinstance(val, str) and key in generated_categories:
+                # Handle legacy format where keys might be Title Case or snake_case
+                reference_categories[key] = val
+        
+        # If there's a mismatch in keys (e.g. Title Case vs snake_case in legacy), map them
+        legacy_mapping = {
+            "Rhythm and Timing": "rhythm_and_timing",
+            "Volume and Tone": "volume_and_tone",
+            "Emotional Authenticity": "emotional_authenticity",
+            "Confidence": "confidence"
+        }
+        for old_key, new_key in legacy_mapping.items():
+            if old_key in reference_answer and new_key not in reference_categories:
+                val = reference_answer[old_key]
+                reference_categories[new_key] = val["assessment"] if isinstance(val, dict) else val
+
+        generated_coaching = "\n\n".join(
+            [f"{cat}: {text}" for cat, text in generated_categories.items()]
+        )
 
         reference_coaching = "\n\n".join(
-            [f"{category}: {text}" for category, text in reference_answer.items()]
+            [f"{cat}: {text}" for cat, text in reference_categories.items()]
         )
 
         if not _coaching_has_content(generated_coaching) and not _coaching_has_content(reference_coaching):
-            # Both sides are empty — the model correctly identified there was nothing
-            # to assess and the reference agrees.  Perfect match, no API call needed.
+            # Both sides are empty — correct match.
             overall_similarity = 1.0
         elif generated_coaching and reference_coaching:
             overall_similarity = self.similarity_calculator.calculate_similarity(
@@ -253,12 +274,10 @@ class FeedbackEvaluator:
             overall_similarity = 0.0
 
         category_similarities: Dict[str, float] = {}
-        generated_categories = extract_style_coaching_by_category(feedback)
-        if not generated_categories:
-            generated_categories = {category: "" for category in reference_answer}
 
-        for category, reference_text in reference_answer.items():
+        for category in generated_categories:
             generated_text = generated_categories.get(category, "")
+            reference_text = reference_categories.get(category, "")
             if not generated_text and not reference_text:
                 # Both sides empty — correct "nothing to assess" prediction.
                 category_similarities[category] = 1.0

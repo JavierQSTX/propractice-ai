@@ -1,5 +1,6 @@
 import asyncio
 import base64
+from typing import Any
 
 import instructor
 from google import genai
@@ -16,6 +17,7 @@ from ai_feedback.constants.fallback_prompts import (
 )
 from ai_feedback.constants.prompts import (
     AUDIO_ANALYSIS_PROMPT,
+    AUDIO_ANALYSIS_PROMPT_LEGACY,
     TEXT_ANALYSIS_PROMPT,
     EXTRACT_KEYWORDS_PROMPT,
     JUDGE_FEEDBACK_PROMPT,
@@ -25,7 +27,8 @@ from ai_feedback.constants.prompts import (
 from ai_feedback.models import (
     ScriptDetails,
     AudioAnalysis,
-    LessonDetailsExtractedKeywords, SupportedLanguage,
+    AudioAnalysisLegacy,
+    LessonDetailsExtractedKeywords, SupportedLanguage, StyleCategory,
 )
 from ai_feedback.utils import (
     lf,
@@ -121,6 +124,49 @@ async def get_audio_analysis(audio: bytes, session_id: str, language: str = Supp
             },
         ],
         response_model=AudioAnalysis,
+    )
+
+    if audio_analysis is None:
+        raise RuntimeError("External API call failed: received None")
+
+    return audio_analysis
+
+
+async def get_audio_analysis_legacy(
+    audio: bytes,
+    session_id: str,
+    language: str = SupportedLanguage.ENGLISH.value,
+) -> AudioAnalysisLegacy:
+    encoded_string = base64.b64encode(audio).decode("utf-8")
+
+    max_words_per_speech_dimension = lf.get_prompt(
+        "max-words-per-speech-dimension",
+        label="production",
+        fallback=FALLBACK_MAX_WORDS_PER_SPEECH_DIMENSION,
+    ).prompt
+
+    audio_analysis = await instructor_client.chat.completions.create(
+        model=settings.ai_model_name,
+        modalities=["text"],
+        messages=[
+            {
+                "role": "developer",
+                "content": AUDIO_ANALYSIS_PROMPT_LEGACY.format(
+                    max_words_per_speech_dimension=max_words_per_speech_dimension,
+                    language=language
+                ),
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "input_audio",
+                        "input_audio": {"data": encoded_string, "format": "wav"},
+                    },
+                ],
+            },
+        ],
+        response_model=AudioAnalysisLegacy,
     )
 
     if audio_analysis is None:
@@ -309,12 +355,89 @@ async def get_feedback(
     user_id: str | None,
     tags: list[str] | None,
     language: str = SupportedLanguage.ENGLISH.value,
-) -> tuple[str, int, int, int, int, int, int, str]:
+) -> dict[str, Any]:
     session_id = generate_session_id()
     logger.info(f"Lesson details: {script_details}")
 
     audio = read_audio(audio_filename)
     audio_analysis = await get_audio_analysis(audio, session_id, language)
+
+    keyword_equivalents = await get_keyword_equivalents(
+        transcript=audio_analysis.transcript,
+        script_details=script_details,
+        session_id=session_id,
+        language=language,
+    )
+    logger.info(f"Keyword equivalents: {keyword_equivalents}")
+    scores, matching_keywords = get_scores_and_matching_keywords(keyword_equivalents)
+    logger.info(f"Scores: {scores}")
+    logger.info(f"Matched keywords: {matching_keywords}")
+
+    try:
+        average_score = int(sum(scores.values()) / len(scores))
+    except ZeroDivisionError:
+        average_score = 0
+
+    text_analysis = await get_text_analysis(
+        transcript=audio_analysis.transcript,
+        script_details=script_details,
+        scores=scores,
+        matching_keywords=matching_keywords,
+        session_id=session_id,
+        language=language,
+    )
+    final_feedback = f"{text_analysis}*only bolded keywords are mentioned during the recording\n\n"
+
+    # Assemble structured response
+    if not keyword_equivalents.transcript_matches_lesson:
+        # If matching failed, use fallback "skipped" message and 0 scores
+        skipped_category = StyleCategory(assessment=SPEECH_ANALYSIS_SKIPPED, score=0)
+        return {
+            "feedback": final_feedback,
+            "accuracy": average_score,
+            "confidence": 0,
+            "session_id": session_id,
+            "rhythm_and_timing": skipped_category,
+            "volume_and_tone": skipped_category,
+            "emotional_authenticity": skipped_category,
+            "confidence": skipped_category,
+        }
+
+    # Normal case: return full structured data
+    confidence_score = int(
+        (
+            audio_analysis.rhythm_and_timing.score
+            + audio_analysis.volume_and_tone.score
+            + audio_analysis.emotional_authenticity.score
+            + audio_analysis.confidence.score
+        )
+        / 4
+    )
+
+    return {
+        "feedback": final_feedback,
+        "accuracy": average_score,
+        "confidence": confidence_score,
+        "session_id": session_id,
+        "rhythm_and_timing": audio_analysis.rhythm_and_timing,
+        "volume_and_tone": audio_analysis.volume_and_tone,
+        "emotional_authenticity": audio_analysis.emotional_authenticity,
+        "confidence_detail": audio_analysis.confidence,
+    }
+
+async def get_feedback_legacy(
+    *,
+    audio_filename: str,
+    script_details: ScriptDetails,
+    user_id: str | None,
+    tags: list[str] | None,
+    language: str = SupportedLanguage.ENGLISH.value,
+) -> dict[str, Any]:
+    session_id = generate_session_id()
+    logger.info(f"Lesson details: {script_details}")
+
+    audio = read_audio(audio_filename)
+    audio_analysis = await get_audio_analysis_legacy(audio, session_id, language)
 
     keyword_equivalents = await get_keyword_equivalents(
         transcript=audio_analysis.transcript,
@@ -383,16 +506,16 @@ async def get_feedback(
         else audio_analysis.confidence_score
     )
 
-    return (
-        final_feedback,
-        average_score,
-        confidence_score,
-        rhythm_timing,
-        volume_tone,
-        emotional_authenticity,
-        confidence_detail,
-        session_id,
-    )
+    return {
+        "feedback": final_feedback,
+        "accuracy": average_score,
+        "confidence": confidence_score,
+        "session_id": session_id,
+        "rhythm_timing_score": rhythm_timing,
+        "volume_tone_score": volume_tone,
+        "emotional_authenticity_score": emotional_authenticity,
+        "confidence_detail_score": confidence_detail,
+    }
 
 
 async def get_feedback_from_video(
@@ -402,7 +525,7 @@ async def get_feedback_from_video(
     user_id: str | None,
     tags: list[str] | None,
     language: str = SupportedLanguage.ENGLISH.value,
-) -> tuple[str, int, int, int, int, int, int, str]:
+) -> dict[str, Any]:
     """
     Generate feedback from video using Gemini's multimodal capabilities.
     This function processes video directly without converting to audio first.
@@ -443,57 +566,44 @@ async def get_feedback_from_video(
         session_id=session_id,
         language=language,
     )
-    speech_analysis = (
-        SPEECH_ANALYSIS_SKIPPED
-        if not keyword_equivalents.transcript_matches_lesson
-        else video_analysis.speaking_style_analysis
-    )
+    final_feedback = f"{text_analysis}*only bolded keywords are mentioned during the recording\n\n"
 
-    final_feedback = (
-        f"{text_analysis}*only bolded keywords are mentioned during the recording\\n\\n"
-        f"## Style Coaching Recommendations\\n\\n{speech_analysis}"
-    )
+    # Assemble structured response
+    if not keyword_equivalents.transcript_matches_lesson:
+        # If matching failed, use fallback "skipped" message and 0 scores
+        skipped_category = StyleCategory(assessment=SPEECH_ANALYSIS_SKIPPED, score=0)
+        return {
+            "feedback": final_feedback,
+            "accuracy": average_score,
+            "confidence": 0,
+            "session_id": session_id,
+            "rhythm_and_timing": skipped_category,
+            "volume_and_tone": skipped_category,
+            "emotional_authenticity": skipped_category,
+            "confidence": skipped_category,
+            "visual_presence": skipped_category,
+        }
 
-    confidence_score = (
-        0
-        if not keyword_equivalents.transcript_matches_lesson
-        else int(
-            (
-                video_analysis.rhythm_timing_score
-                + video_analysis.volume_tone_score
-                + video_analysis.emotional_authenticity_score
-                + video_analysis.confidence_score
-            )
-            / 4
+    # Normal case: return full structured data
+    confidence_score = int(
+        (
+            video_analysis.rhythm_and_timing.score
+            + video_analysis.volume_and_tone.score
+            + video_analysis.emotional_authenticity.score
+            + video_analysis.confidence.score
         )
+        / 4
     )
 
-    # Individual dimension scores (0 if transcript doesn't match lesson)
-    rhythm_timing = (
-        0 if not keyword_equivalents.transcript_matches_lesson
-        else video_analysis.rhythm_timing_score
-    )
-    volume_tone = (
-        0 if not keyword_equivalents.transcript_matches_lesson
-        else video_analysis.volume_tone_score
-    )
-    emotional_authenticity = (
-        0 if not keyword_equivalents.transcript_matches_lesson
-        else video_analysis.emotional_authenticity_score
-    )
-    confidence_detail = (
-        0 if not keyword_equivalents.transcript_matches_lesson
-        else video_analysis.confidence_score
-    )
-
-    return (
-        final_feedback,
-        average_score,
-        confidence_score,
-        rhythm_timing,
-        volume_tone,
-        emotional_authenticity,
-        confidence_detail,
-        session_id,
-    )
+    return {
+        "feedback": final_feedback,
+        "accuracy": average_score,
+        "confidence": confidence_score,
+        "session_id": session_id,
+        "rhythm_and_timing": video_analysis.rhythm_and_timing,
+        "volume_and_tone": video_analysis.volume_and_tone,
+        "emotional_authenticity": video_analysis.emotional_authenticity,
+        "confidence": video_analysis.confidence,
+        "visual_presence": video_analysis.visual_presence,
+    }
 
