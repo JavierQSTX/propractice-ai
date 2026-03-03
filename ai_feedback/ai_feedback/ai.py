@@ -40,6 +40,58 @@ MAX_ITERATIONS = 30        # e.g. ~60 seconds total
 SLEEP_SECONDS = 2
 
 
+STYLE_CATEGORY_TITLES = {
+    SupportedLanguage.ENGLISH.value: {
+        "heading": "Style Coaching Recommendations",
+        "rhythm_and_timing": "Rhythm & Timing",
+        "volume_and_tone": "Volume and Tone",
+        "emotional_authenticity": "Emotional Authenticity",
+        "confidence": "Confidence"
+    },
+    SupportedLanguage.GERMAN.value: {
+        "heading": "Stil-Coaching-Empfehlungen",
+        "rhythm_and_timing": "Rhythmus & Timing",
+        "volume_and_tone": "Lautstärke und Ton",
+        "emotional_authenticity": "Emotionale Authentizität",
+        "confidence": "Selbstvertrauen"
+    },
+    SupportedLanguage.DUTCH.value: {
+        "heading": "Stijl Coaching Aanbevelingen",
+        "rhythm_and_timing": "Ritme & Timing",
+        "volume_and_tone": "Volume en Toon",
+        "emotional_authenticity": "Emotionele Authenticiteit",
+        "confidence": "Zelfvertrouwen"
+    },
+    SupportedLanguage.FRENCH.value: {
+        "heading": "Recommandations de Style et de Coaching",
+        "rhythm_and_timing": "Rythme & Timing",
+        "volume_and_tone": "Volume et Ton",
+        "emotional_authenticity": "Authenticité Émotionnelle",
+        "confidence": "Confiance"
+    },
+    SupportedLanguage.MALAY.value: {
+        "heading": "Cadangan Bimbingan Gaya",
+        "rhythm_and_timing": "Ritma & Masa",
+        "volume_and_tone": "Kelantangan dan Nada",
+        "emotional_authenticity": "Keaslian Emosi",
+        "confidence": "Keyakinan"
+    },
+    SupportedLanguage.SPANISH.value: {
+        "heading": "Recomendaciones de Entrenamiento de Estilo",
+        "rhythm_and_timing": "Ritmo y Sincronización",
+        "volume_and_tone": "Volumen y Tono",
+        "emotional_authenticity": "Autenticidad Emocional",
+        "confidence": "Confianza"
+    },
+    SupportedLanguage.POLISH.value: {
+        "heading": "Rekomendacje Dodatkowe dotyczące Stylu",
+        "rhythm_and_timing": "Rytm i Tempo",
+        "volume_and_tone": "Głośność i Ton",
+        "emotional_authenticity": "Emocjonalna Autentyczność",
+        "confidence": "Pewność Siebie"
+    }
+}
+
 langfuse = get_client()
 GoogleGenAIInstrumentor().instrument()
 
@@ -390,7 +442,8 @@ async def get_feedback(
 
     # Concatenate style assessments into final_feedback
     if not keyword_equivalents.transcript_matches_lesson:
-        final_feedback += f"## Style Coaching Recommendations\n\n{SPEECH_ANALYSIS_SKIPPED}"
+        titles = STYLE_CATEGORY_TITLES.get(language, STYLE_CATEGORY_TITLES[SupportedLanguage.ENGLISH.value])
+        final_feedback += f"## {titles['heading']}\n\n{SPEECH_ANALYSIS_SKIPPED}"
         skipped_category = StyleCategory(assessment=SPEECH_ANALYSIS_SKIPPED, score=0)
         return {
             "feedback": final_feedback,
@@ -403,12 +456,13 @@ async def get_feedback(
             "confidence_detail": skipped_category,
         }
 
+    titles = STYLE_CATEGORY_TITLES.get(language, STYLE_CATEGORY_TITLES[SupportedLanguage.ENGLISH.value])
     final_feedback += (
-        "## Style Coaching Recommendations\n\n"
-        f"* Rhythm & Timing: {audio_analysis.rhythm_and_timing.assessment}\n"
-        f"* Volume and Tone: {audio_analysis.volume_and_tone.assessment}\n"
-        f"* Emotional Authenticity: {audio_analysis.emotional_authenticity.assessment}\n"
-        f"* Confidence: {audio_analysis.confidence.assessment}"
+        f"## {titles['heading']}\n\n"
+        f"* {titles['rhythm_and_timing']}: {audio_analysis.rhythm_and_timing.assessment}\n"
+        f"* {titles['volume_and_tone']}: {audio_analysis.volume_and_tone.assessment}\n"
+        f"* {titles['emotional_authenticity']}: {audio_analysis.emotional_authenticity.assessment}\n"
+        f"* {titles['confidence']}: {audio_analysis.confidence.assessment}"
     )
 
     # Normal case: return full structured data
@@ -477,9 +531,10 @@ async def get_feedback_legacy(
         else audio_analysis.speaking_style_analysis
     )
 
+    titles = STYLE_CATEGORY_TITLES.get(language, STYLE_CATEGORY_TITLES[SupportedLanguage.ENGLISH.value])
     final_feedback = (
         f"{text_analysis}*only bolded keywords are mentioned during the recording\n\n"
-        f"## Style Coaching Recommendations\n\n{speech_analysis}"
+        f"## {titles['heading']}\n\n{speech_analysis}"
     )
 
     confidence_score = (
@@ -578,7 +633,8 @@ async def get_feedback_from_video(
 
     # Concatenate style assessments into final_feedback
     if not keyword_equivalents.transcript_matches_lesson:
-        final_feedback += f"## Style Coaching Recommendations\n\n{SPEECH_ANALYSIS_SKIPPED}"
+        titles = STYLE_CATEGORY_TITLES.get(language, STYLE_CATEGORY_TITLES[SupportedLanguage.ENGLISH.value])
+        final_feedback += f"## {titles['heading']}\n\n{SPEECH_ANALYSIS_SKIPPED}"
         skipped_category = StyleCategory(assessment=SPEECH_ANALYSIS_SKIPPED, score=0)
         return {
             "feedback": final_feedback,
@@ -592,12 +648,13 @@ async def get_feedback_from_video(
             "visual_presence": skipped_category,
         }
 
+    titles = STYLE_CATEGORY_TITLES.get(language, STYLE_CATEGORY_TITLES[SupportedLanguage.ENGLISH.value])
     final_feedback += (
-        "## Style Coaching Recommendations\n\n"
-        f"* Rhythm & Timing: {video_analysis.rhythm_and_timing.assessment}\n"
-        f"* Volume and Tone: {video_analysis.volume_and_tone.assessment}\n"
-        f"* Emotional Authenticity: {video_analysis.emotional_authenticity.assessment}\n"
-        f"* Confidence: {video_analysis.confidence.assessment}"
+        f"## {titles['heading']}\n\n"
+        f"* {titles['rhythm_and_timing']}: {video_analysis.rhythm_and_timing.assessment}\n"
+        f"* {titles['volume_and_tone']}: {video_analysis.volume_and_tone.assessment}\n"
+        f"* {titles['emotional_authenticity']}: {video_analysis.emotional_authenticity.assessment}\n"
+        f"* {titles['confidence']}: {video_analysis.confidence.assessment}"
     )
 
     # Normal case: return full structured data
