@@ -237,11 +237,11 @@ class FeedbackEvaluator:
 
         # Prepare reference categories and normalize them for comparison
         reference_categories = {}
-        for key, val in reference_answer.items():
+        for key in generated_categories.keys():
+            val = reference_answer.get(key)
             if isinstance(val, dict) and "assessment" in val:
                 reference_categories[key] = val["assessment"]
-            elif isinstance(val, str) and key in generated_categories:
-                # Handle case where reference is just a string and key matches
+            elif isinstance(val, str):
                 reference_categories[key] = val
 
         generated_coaching = "\n\n".join(
@@ -249,7 +249,7 @@ class FeedbackEvaluator:
         )
 
         reference_coaching = "\n\n".join(
-            [f"{cat}: {text}" for cat, text in reference_categories.items()]
+            [f"{cat}: {reference_categories.get(cat, '')}" for cat in generated_categories.keys()]
         )
 
         if not _coaching_has_content(generated_coaching) and not _coaching_has_content(reference_coaching):
