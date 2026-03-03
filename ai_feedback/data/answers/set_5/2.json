@@ -1,22 +1,22 @@
 {
-  "feedback": "## Content Assessment Placeholder\n\n(Original evaluation answers didn't have feedback field, adding it for structure match)",
-  "accuracy": 0,
-  "confidence": 0,
-  "session_id": "ref_2.json",
-  "rhythm_and_timing": {
-    "assessment": "After \u201cachieve their financial goals,\u201d you move on quickly. That\u2019s the value line\u2014give it space to land. Add a brief pause, then restart smoothly with \u201cBecause circumstances change over time\u2026\u201d so the message feels inviting, not rushed.",
-    "score": 0
-  },
-  "volume_and_tone": {
-    "assessment": "Your tone is professional and clear. Add warmth on \u201csave time and money\u201d to increase helpfulness\u2014smile slightly and round the voice on \u201csave,\u201d then soften the ending so it sounds like a benefit for them, not a pitch.",
-    "score": 0
-  },
-  "emotional_authenticity": {
-    "assessment": "Your sincerity comes through, but \u201ccomplimentary\u201d and \u201cconfidential\u201d should sound reassuring. Slow down slightly and lower your tone on \u201cconfidential.\u201d Try: \u201cThis is complimentary\u2014and completely confidential,\u201d then let it land before continuing.",
-    "score": 0
-  },
-  "confidence_detail": {
-    "assessment": "Your delivery is steady; strengthen the close so it feels decisive. Remove softeners and lead with a direct invitation: \u201cLet\u2019s get started now\u2014does 10 to 15 minutes work?\u201d Take a natural breath before the question to project leadership.",
-    "score": 0
-  }
+    "feedback": "## Content Assessment of Key Elements\n\n| **Key Elements** | **Recording matches** | **Score** |\n| :--- | :--- | :--- |\n| - my \\| responsibility \\| **help Members achieve** \\| **financial goals** \\| make \\| **banking** \\| convenient | ⚠️ Partially | 42% |\n| - **understand** \\| **current** \\| **future financial needs** \\| ask \\| questions | ⚠️ Partially | 60% |\n| - **10-15 minutes** | ✅ Yes | 100% |\n| - **complimentary service** \\| confidential | ⚠️ Partially | 50% |\n| - **get started** \\| **now** | ✅ Yes | 100% |*only bolded keywords are mentioned during the recording\n\n## Style Coaching Recommendations\n\n* Rhythm & Timing: Your pace is consistent! Consider pausing after 'interests you?' to allow the question to land before mentioning the 'complementary service' for better impact.\n* Volume and Tone: Great professional tone! Try adding more vocal variety when saying 'better your banking' to sound more enthusiastic about the benefits you're offering.\n* Emotional Authenticity: Good focus! To enhance authenticity, try to soften your expression when mentioning 'personal statements' to convey genuine care for the client's situation.\n* Confidence: You look composed! Avoid the 'um' at the beginning to start with more authority, and keep your shoulders relaxed to appear more naturally confident.",
+    "accuracy": 70,
+    "confidence": 70,
+    "session_id": "b66b1efc-2e02-4712-a561-4a5553b5ff66",
+    "rhythm_and_timing": {
+        "assessment": "Your pace is consistent! Consider pausing after 'interests you?' to allow the question to land before mentioning the 'complementary service' for better impact.",
+        "score": 74
+    },
+    "volume_and_tone": {
+        "assessment": "Great professional tone! Try adding more vocal variety when saying 'better your banking' to sound more enthusiastic about the benefits you're offering.",
+        "score": 69
+    },
+    "emotional_authenticity": {
+        "assessment": "Good focus! To enhance authenticity, try to soften your expression when mentioning 'personal statements' to convey genuine care for the client's situation.",
+        "score": 67
+    },
+    "confidence_detail": {
+        "assessment": "You look composed! Avoid the 'um' at the beginning to start with more authority, and keep your shoulders relaxed to appear more naturally confident.",
+        "score": 72
+    }
 }

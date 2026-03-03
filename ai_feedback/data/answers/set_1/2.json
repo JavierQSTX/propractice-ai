@@ -1,22 +1,22 @@
 {
-  "feedback": "## Content Assessment Placeholder\n\n(Original evaluation answers didn't have feedback field, adding it for structure match)",
-  "accuracy": 0,
-  "confidence": 0,
-  "session_id": "ref_2.json",
-  "rhythm_and_timing": {
-    "assessment": "After \u201cachieve their financial goals,\u201d you move on quickly. That\u2019s the value line\u2014give it space to land. Add a brief pause, then restart smoothly with \u201cBecause circumstances change over time\u2026\u201d so the message feels inviting, not rushed.",
-    "score": 0
-  },
-  "volume_and_tone": {
-    "assessment": "Your tone is professional and clear. Add warmth on \u201csave time and money\u201d to increase helpfulness\u2014smile slightly and round the voice on \u201csave,\u201d then soften the ending so it sounds like a benefit for them, not a pitch.",
-    "score": 0
-  },
-  "emotional_authenticity": {
-    "assessment": "Your sincerity comes through, but \u201ccomplimentary\u201d and \u201cconfidential\u201d should sound reassuring. Slow down slightly and lower your tone on \u201cconfidential.\u201d Try: \u201cThis is complimentary\u2014and completely confidential,\u201d then let it land before continuing.",
-    "score": 0
-  },
-  "confidence_detail": {
-    "assessment": "Your delivery is steady; strengthen the close so it feels decisive. Remove softeners and lead with a direct invitation: \u201cLet\u2019s get started now\u2014does 10 to 15 minutes work?\u201d Take a natural breath before the question to project leadership.",
-    "score": 0
-  }
+    "feedback": "## Content Assessment of Key Elements\n\n| **Key Elements** | **Recording matches** | **Score** |\n|-----------------|-----------------------|-----------|\n| - **my** \\| **responsibility** \\| **help Members achieve** \\| **financial goals** \\| **make** \\| **banking** \\| **convenient** | ✅ Yes | 100% |\n| - **understand** \\| **current** \\| **future financial needs** \\| ask \\| questions | ⚠️ Partially | 60% |\n| - **10-15 minutes** | ✅ Yes | 100% |\n| - **complimentary service** \\| **confidential** | ✅ Yes | 100% |\n| - **get started** \\| **now** | ✅ Yes | 100% |*only bolded keywords are mentioned during the recording\n\n## Style Coaching Recommendations\n\n* Rhythm & Timing: Steady pace! To feel more natural, try pausing after 'Mr. Jackson' to acknowledge the client before continuing with your question about assistance.\n* Volume and Tone: Clear and professional. To sound more helpful, try increasing the pitch slightly when mentioning 'complimentary service' to highlight the added value.\n* Emotional Authenticity: Sincere delivery. When saying 'I appreciate the opportunity', try a softer, warmer tone and a subtle nod to show genuine gratitude.\n* Confidence: Strong eye contact throughout. You show ownership; consider a bold pause before 'very confidential' to emphasize the security and trust you offer.",
+    "accuracy": 92,
+    "confidence": 80,
+    "session_id": "db91d251-8fd9-4045-a812-66acef57ce27",
+    "rhythm_and_timing": {
+        "assessment": "Steady pace! To feel more natural, try pausing after 'Mr. Jackson' to acknowledge the client before continuing with your question about assistance.",
+        "score": 82
+    },
+    "volume_and_tone": {
+        "assessment": "Clear and professional. To sound more helpful, try increasing the pitch slightly when mentioning 'complimentary service' to highlight the added value.",
+        "score": 79
+    },
+    "emotional_authenticity": {
+        "assessment": "Sincere delivery. When saying 'I appreciate the opportunity', try a softer, warmer tone and a subtle nod to show genuine gratitude.",
+        "score": 76
+    },
+    "confidence_detail": {
+        "assessment": "Strong eye contact throughout. You show ownership; consider a bold pause before 'very confidential' to emphasize the security and trust you offer.",
+        "score": 86
+    }
 }

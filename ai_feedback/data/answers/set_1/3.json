@@ -1,22 +1,22 @@
 {
-  "feedback": "## Content Assessment Placeholder\n\n(Original evaluation answers didn't have feedback field, adding it for structure match)",
-  "accuracy": 0,
-  "confidence": 0,
-  "session_id": "ref_3.json",
-  "rhythm_and_timing": {
-    "assessment": "After \u201cachieve their financial goals,\u201d you move on quickly. That\u2019s the value line\u2014give it space to land. Add a brief pause, then restart smoothly with \u201cBecause circumstances change over time\u2026\u201d so the message feels inviting, not rushed.",
-    "score": 0
-  },
-  "volume_and_tone": {
-    "assessment": "Your tone is professional and clear. Add warmth on \u201csave time and money\u201d to increase helpfulness\u2014smile slightly and round the voice on \u201csave,\u201d then soften the ending so it sounds like a benefit for them, not a pitch.",
-    "score": 0
-  },
-  "emotional_authenticity": {
-    "assessment": "Your sincerity comes through, but \u201ccomplimentary\u201d and \u201cconfidential\u201d should sound reassuring. Slow down slightly and lower your tone on \u201cconfidential.\u201d Try: \u201cThis is complimentary\u2014and completely confidential,\u201d then let it land before continuing.",
-    "score": 0
-  },
-  "confidence_detail": {
-    "assessment": "Your delivery is steady; strengthen the close so it feels decisive. Remove softeners and lead with a direct invitation: \u201cLet\u2019s get started now\u2014does 10 to 15 minutes work?\u201d Take a natural breath before the question to project leadership.",
-    "score": 0
-  }
+    "feedback": "## Content Assessment of Key Elements\n\n| **Key Elements** | **Recording Matches** | **Score** |\n|------------------|-----------------------|-----------|\n| - Thank you | ❌ No | 0% |\n| - **my responsibility** \\| **help Members achieve** \\| **financial goals** \\| **make** \\| **banking** \\| **convenient** | ✅ Yes | 100% |\n| - Circumstances \\| change over time \\| implementing \\| way \\| **understand** \\| **current** \\| **future financial needs** \\| look \\| all \\| ways \\| be helpful | ⚠️ Partially | 27% |\n| - helped others save time \\| money \\| **ask** \\| **few questions** \\| see \\| do \\| same for you. | ⚠️ Partially | 28% |\n| - **about 10-15 minutes** | ✅ Yes | 100% |\n| - **complimentary service** \\| **course** \\| **confidential** | ✅ Yes | 100% |\n| - **get started** \\| **now** | ✅ Yes | 100% |*only bolded keywords are mentioned during the recording\n\n## Style Coaching Recommendations\n\n* Rhythm & Timing: The pauses and the 'um' at 0:15 break the flow; try connecting 'banking more convenient' directly to the next point without fillers.\n* Volume and Tone: Your tone is professional but a bit flat. Add brightness when saying 'achieve their financial goals' to sound more encouraging and supportive.\n* Emotional Authenticity: To seem more invested, show a slight smile when mentioning the 'complimentary service' to reflect the genuine value you are providing.\n* Confidence: Avoid the self-correcting 'um, okay' at 0:15. Replacing it with a steady gaze into the camera would project much higher certainty and authority.",
+    "accuracy": 65,
+    "confidence": 61,
+    "session_id": "c89db29e-76cc-40a7-8d68-69a5a2c83dee",
+    "rhythm_and_timing": {
+        "assessment": "The pauses and the 'um' at 0:15 break the flow; try connecting 'banking more convenient' directly to the next point without fillers.",
+        "score": 62
+    },
+    "volume_and_tone": {
+        "assessment": "Your tone is professional but a bit flat. Add brightness when saying 'achieve their financial goals' to sound more encouraging and supportive.",
+        "score": 68
+    },
+    "emotional_authenticity": {
+        "assessment": "To seem more invested, show a slight smile when mentioning the 'complimentary service' to reflect the genuine value you are providing.",
+        "score": 54
+    },
+    "confidence_detail": {
+        "assessment": "Avoid the self-correcting 'um, okay' at 0:15. Replacing it with a steady gaze into the camera would project much higher certainty and authority.",
+        "score": 61
+    }
 }
