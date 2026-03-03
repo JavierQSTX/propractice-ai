@@ -56,13 +56,6 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction
 
-      # ---------------------------------------------------------------
-      # Derive a stable, human-readable experiment name:
-      #   PR  →  pr-<number>
-      #   push to main/dev  →  main / dev
-      #   manual dispatch with input  →  <input>
-      #   manual dispatch without input  →  manual-<run_number>
-      # ---------------------------------------------------------------
       - name: Resolve experiment name
         id: exp
         run: |

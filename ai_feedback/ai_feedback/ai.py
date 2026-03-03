@@ -24,6 +24,7 @@ from ai_feedback.constants.prompts import (
     SPEECH_ANALYSIS_SKIPPED,
     VIDEO_ANALYSIS_PROMPT,
 )
+from ai_feedback.constants.translations import STYLE_CATEGORY_TITLES
 from ai_feedback.models import (
     ScriptDetails,
     AudioAnalysis,
@@ -38,59 +39,6 @@ from ai_feedback.utils import (
 
 MAX_ITERATIONS = 30        # e.g. ~60 seconds total
 SLEEP_SECONDS = 2
-
-
-STYLE_CATEGORY_TITLES = {
-    SupportedLanguage.ENGLISH.value: {
-        "heading": "Style Coaching Recommendations",
-        "rhythm_and_timing": "Rhythm & Timing",
-        "volume_and_tone": "Volume and Tone",
-        "emotional_authenticity": "Emotional Authenticity",
-        "confidence": "Confidence"
-    },
-    SupportedLanguage.GERMAN.value: {
-        "heading": "Stil-Coaching-Empfehlungen",
-        "rhythm_and_timing": "Rhythmus & Timing",
-        "volume_and_tone": "Lautstärke und Ton",
-        "emotional_authenticity": "Emotionale Authentizität",
-        "confidence": "Selbstvertrauen"
-    },
-    SupportedLanguage.DUTCH.value: {
-        "heading": "Stijl Coaching Aanbevelingen",
-        "rhythm_and_timing": "Ritme & Timing",
-        "volume_and_tone": "Volume en Toon",
-        "emotional_authenticity": "Emotionele Authenticiteit",
-        "confidence": "Zelfvertrouwen"
-    },
-    SupportedLanguage.FRENCH.value: {
-        "heading": "Recommandations de Style et de Coaching",
-        "rhythm_and_timing": "Rythme & Timing",
-        "volume_and_tone": "Volume et Ton",
-        "emotional_authenticity": "Authenticité Émotionnelle",
-        "confidence": "Confiance"
-    },
-    SupportedLanguage.MALAY.value: {
-        "heading": "Cadangan Bimbingan Gaya",
-        "rhythm_and_timing": "Ritma & Masa",
-        "volume_and_tone": "Kelantangan dan Nada",
-        "emotional_authenticity": "Keaslian Emosi",
-        "confidence": "Keyakinan"
-    },
-    SupportedLanguage.SPANISH.value: {
-        "heading": "Recomendaciones de Entrenamiento de Estilo",
-        "rhythm_and_timing": "Ritmo y Sincronización",
-        "volume_and_tone": "Volumen y Tono",
-        "emotional_authenticity": "Autenticidad Emocional",
-        "confidence": "Confianza"
-    },
-    SupportedLanguage.POLISH.value: {
-        "heading": "Rekomendacje Dodatkowe dotyczące Stylu",
-        "rhythm_and_timing": "Rytm i Tempo",
-        "volume_and_tone": "Głośność i Ton",
-        "emotional_authenticity": "Emocjonalna Autentyczność",
-        "confidence": "Pewność Siebie"
-    }
-}
 
 langfuse = get_client()
 GoogleGenAIInstrumentor().instrument()
@@ -313,6 +261,7 @@ async def get_text_analysis(
         f"Include coaching recommendations: <{include_coaching_recommendations}>"
     )
 
+    titles = STYLE_CATEGORY_TITLES.get(language, STYLE_CATEGORY_TITLES[SupportedLanguage.ENGLISH.value])
     response = await client.chat.completions.create(  # pyright: ignore
         model=settings.ai_model_name,
         modalities=["text"],
@@ -326,6 +275,7 @@ async def get_text_analysis(
                         "coaching_column_instructions"
                     ],
                     language=language,
+                    assessment_heading=titles["assessment_heading"],
                 ),
             },
             {
@@ -438,7 +388,8 @@ async def get_feedback(
         session_id=session_id,
         language=language,
     )
-    final_feedback = f"{text_analysis}*only bolded keywords are mentioned during the recording\n\n"
+    titles = STYLE_CATEGORY_TITLES.get(language, STYLE_CATEGORY_TITLES[SupportedLanguage.ENGLISH.value])
+    final_feedback = f"{text_analysis}{titles['bolded_keywords']}\n\n"
 
     # Concatenate style assessments into final_feedback
     if not keyword_equivalents.transcript_matches_lesson:
@@ -533,7 +484,7 @@ async def get_feedback_legacy(
 
     titles = STYLE_CATEGORY_TITLES.get(language, STYLE_CATEGORY_TITLES[SupportedLanguage.ENGLISH.value])
     final_feedback = (
-        f"{text_analysis}*only bolded keywords are mentioned during the recording\n\n"
+        f"{text_analysis}{titles['bolded_keywords']}\n\n"
         f"## {titles['heading']}\n\n{speech_analysis}"
     )
 
@@ -629,7 +580,8 @@ async def get_feedback_from_video(
         session_id=session_id,
         language=language,
     )
-    final_feedback = f"{text_analysis}*only bolded keywords are mentioned during the recording\n\n"
+    titles = STYLE_CATEGORY_TITLES.get(language, STYLE_CATEGORY_TITLES[SupportedLanguage.ENGLISH.value])
+    final_feedback = f"{text_analysis}{titles['bolded_keywords']}\n\n"
 
     # Concatenate style assessments into final_feedback
     if not keyword_equivalents.transcript_matches_lesson:

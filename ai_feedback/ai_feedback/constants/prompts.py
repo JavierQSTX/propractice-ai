@@ -198,7 +198,7 @@ Each "keyElement" has:
 - a list of "keywords", which need to be mentioned exactly or as close synonyms as part of the audio answer, when talking
 about this specific keyElement
 
-In a section called "Content Assessment of Key Elements", create a markdown table with the following columns:
+In a section called "{assessment_heading}", create a markdown table with the following columns:
 - Key Elements
 - Recording Matches (with options Yes/Partially/No)
 - Score
@@ -243,7 +243,7 @@ unique benefits and differentiators while ensuring a smooth and personalized exp
 </example_input>
 
 example_output>
-## Content Assessment of Key Elements
+## {assessment_heading}
 {table_example}
 </example_output>
 
