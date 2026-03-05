@@ -252,16 +252,6 @@ class FeedbackEvaluator:
             [f"{cat}: {reference_categories.get(cat, '')}" for cat in generated_categories.keys()]
         )
 
-        if not _coaching_has_content(generated_coaching) and not _coaching_has_content(reference_coaching):
-            # Both sides are empty — correct match.
-            overall_similarity = 1.0
-        elif generated_coaching and reference_coaching:
-            overall_similarity = self.similarity_calculator.calculate_similarity(
-                generated_coaching, reference_coaching
-            )
-        else:
-            overall_similarity = 0.0
-
         category_similarities: Dict[str, float] = {}
 
         for category in generated_categories:
@@ -277,6 +267,11 @@ class FeedbackEvaluator:
             else:
                 # One side has content, the other doesn’t — genuine mismatch.
                 category_similarities[category] = 0.0
+
+        if category_similarities:
+            overall_similarity = sum(category_similarities.values()) / len(category_similarities)
+        else:
+            overall_similarity = 0.0
 
         passed = overall_similarity >= SIMILARITY_THRESHOLD
 
