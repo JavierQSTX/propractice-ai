@@ -19,7 +19,7 @@ defaults:
 
 jobs:
   evaluate:
-    if: github.event.pull_request.draft == false
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.draft == false
     name: Run AI Feedback Evaluation
     runs-on: ubuntu-latest
     permissions:
