@@ -239,10 +239,17 @@ class FeedbackEvaluator:
         reference_categories = {}
         for key in generated_categories.keys():
             val = reference_answer.get(key)
+            
+            ref_text = ""
             if isinstance(val, dict) and "assessment" in val:
-                reference_categories[key] = val["assessment"]
+                ref_text = val["assessment"]
             elif isinstance(val, str):
-                reference_categories[key] = val
+                ref_text = val
+                
+            if SPEECH_ANALYSIS_SKIPPED in ref_text:
+                ref_text = ""
+                
+            reference_categories[key] = ref_text
 
         generated_coaching = "\n\n".join(
             [f"{cat}: {text}" for cat, text in generated_categories.items()]

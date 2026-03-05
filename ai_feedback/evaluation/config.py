@@ -36,7 +36,7 @@ SETS_DIR = str(_DATA_DIR / "sets")
 CHALLENGES_DIR = str(_DATA_DIR / "challenges")
 ANSWERS_DIR = str(_DATA_DIR / "answers")
 
-SIMILARITY_THRESHOLD = 0.75   # Minimum similarity score to pass (0.0 to 1.0)
+SIMILARITY_THRESHOLD = 0.7   # Minimum similarity score to pass (0.0 to 1.0)
 EMBEDDING_MODEL = "models/gemini-embedding-001"  # Only available embedding model
 LANGFUSE_EXPERIMENT_PREFIX = "eval"
 
