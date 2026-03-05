@@ -61,24 +61,24 @@ Important notes for STYLE ANALYSIS:
 - Do not refer to the audio or the student, just to the quality and assessment of the recording.
 - Make each 'assessment' concise, enthusiastic and concrete (max {max_words_per_speech_dimension} words).
 - CRITICAL: Make your recommendations SPECIFIC and VARIED to avoid repetition:
-  * Structure feedback as: [Positive reinforcement / Current State] followed by [Specific actionable advice].
-  * Quote specific words or phrases from the transcript to support how the trainee can do better.
-  * Tell the trainee exactly what to do instead of what they did wrong. Provide specific vocal cues (e.g., "smile in the voice", "touch of optimism").
-  * Frame feedback positively instead of negatively (e.g., provide advice on what to maintain or add, rather than what to stop doing).
-  * Vary your phrasing and examples across different recordings.
-  * Focus on the most impactful improvements, not generic advice.
+  * Quote specific words or phrases from the transcript when giving examples
+  * Reference concrete moments in the presentation (e.g., "when mentioning the refund policy")
+  * Vary your phrasing and examples across different recordings
+  * Focus on the most impactful improvements, not generic advice
 - Try to avoid directly labelling the student's speech pattern with negative words like "dull" or "boring"; remember your purpose is to coach them in an encouraging, yet realistic manner
 
 Examples of GOOD vs BAD feedback:
 
-Bad: "Work on your pacing." -> generic, could apply to anyone
-Good: "The delivery is consistent. Try pausing slightly after 'complimentary service' to allow the value of the offer to sink in." -> specific moment, actionable
-
-Bad: "You are slightly monotone when listing items." -> focuses on negative, unspecific
-Good: "Professional and clear. Add a little extra warmth on 'personal and business financials' (smile in the voice + light emphasis on personal) to make it land more personal." -> tells trainee exactly what to do, quotes script
-
 Bad: "There's room to deepen the emotional connection to the content." -> too generic, unnatural phrasing
-Good: "Your tone feels supportive and sincere. On 'helping you now and in the future,' emphasize 'now' with calm certainty and 'future' with a touch of optimism to strengthen trust." -> grounded in the situation, offers concrete instruction
+Good: "When discussing the embarrassment a customer might face, conveying empathy through your tone can
+create a stronger impact." -> grounded in the situation, offers concrete advice
+
+Bad: "Use bold pauses to emphasise impactful phrases" -> could apply to any transcript, no examples given
+Good: "Try adding some bold pauses before the key phrases 'wasted money' and 'guaranteed dividends'" -> grounded in
+the situation, mentions words from the script
+
+Bad: "Work on your pacing" -> generic, could apply to anyone
+Good: "The section about account features felt rushed—try slowing down when you say 'premium benefits' to let it land" -> specific moment, actionable
 """
 
 
@@ -148,28 +148,28 @@ Important notes for STYLE ANALYSIS:
 - Do not refer to the video or the student, just to the quality and assessment of the recording
 - Make each 'assessment' concise, enthusiastic and concrete (max {max_words_per_speech_dimension} words).
 - CRITICAL: Make your recommendations SPECIFIC and VARIED to avoid repetition:
-  * Structure feedback as: [Positive reinforcement / Current State] followed by [Specific actionable advice].
-  * Quote specific words or phrases from the transcript to support how the trainee can do better.
-  * Tell the trainee exactly what to do instead of what they did wrong. Provide specific cues (e.g., "smile in the voice", "touch of optimism").
-  * For visual aspects and confidence, focus entirely on positive reinforcement (e.g., "Maintain consistent eye contact to show engagement," instead of emphasizing excessive looking away). 
-  * Frame feedback positively instead of negatively across all dimensions.
-  * Vary your phrasing and examples across different recordings.
+  * Quote specific words or phrases from the transcript when giving examples
+  * Reference concrete moments in the presentation (e.g., "when mentioning the refund policy")
+  * Vary your phrasing and examples across different recordings
+  * Focus on the most impactful improvements, not generic advice
 - Try to avoid directly labelling the student's speech pattern with negative words like "dull" or "boring"
 - Include specific observations about visual elements when relevant
 
 Examples of GOOD vs BAD feedback:
 
-Bad: "Work on your pacing." -> generic, could apply to anyone
-Good: "The delivery is consistent. Try pausing slightly after 'complimentary service' to allow the value of the offer to sink in." -> specific moment, actionable
-
-Bad: "You are slightly monotone when listing items." -> focuses on negative, unspecific
-Good: "Professional and clear. Add a little extra warmth on 'personal and business financials' (smile in the voice + light emphasis on personal) to make it land more personal." -> tells trainee exactly what to do, quotes script
-
 Bad: "There's room to deepen the emotional connection to the content." -> too generic, unnatural phrasing
-Good: "Your tone feels supportive and sincere. On 'helping you now and in the future,' emphasize 'now' with calm certainty and 'future' with a touch of optimism to strengthen trust." -> grounded in the situation, offers concrete instruction
+Good: "When discussing the embarrassment a customer might face, conveying empathy through your tone and facial expression can
+create a stronger impact." -> grounded in the situation, offers concrete advice
 
-Bad: "Your eye contact is poor, you look away too much." -> negative framing
-Good: "Maintain consistent eye contact to show engagement. Staying locked in conveys authority and assures the client you are fully present." -> positive framing, actionable advice
+Bad: "Use bold pauses to emphasise impactful phrases" -> could apply to any transcript, no examples given
+Good: "Try adding some bold pauses before the key phrases 'wasted money' and 'guaranteed dividends', and consider using
+a hand gesture to emphasize these points" -> grounded in the situation, mentions words from the script and visual elements
+
+Bad: "Your body language could be improved" -> too vague
+Good: "Leaning slightly forward when presenting the key benefits can help convey enthusiasm and engagement" -> specific and actionable
+
+Bad: "Work on your pacing" -> generic, could apply to anyone
+Good: "The section about account features felt rushed—try slowing down when you say 'premium benefits' to let it land" -> specific moment, actionable
 """
 
 
