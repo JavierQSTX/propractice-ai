@@ -1,0 +1,77 @@
+{
+  "challenge": "1",
+  "question": "You have resolved an issue for an existing Customer. What should you say to transition into the Customer Review?",
+  "briefing": "<p>This module trains bankers at Northfield Bank to proactively initiate essential financial review conversations with clients. You will learn to transition into a client review after resolving an issue, or when engaging new or existing clients. The objective is to confidently identify evolving financial needs, offer relevant solutions, and deepen client relationships by demonstrating a commitment to their long-term financial well-being through confidential, complimentary service. In the assessment, you will respond to client statements, focusing on acknowledging their situation, stating your responsibility to help achieve financial goals, explaining the benefits of a review (understanding needs, finding helpful solutions, potentially saving time/money), and clearly communicating the complimentary, confidential, and time-efficient nature of the service, all while using a formal and precise tone.</p>",
+  "keyElements": [
+    {
+      "script": "Mr. Jackson ( Customer Name ), what else can I assist you with today ?",
+      "keywords": [
+        "Customer Name",
+        "what else",
+        "assist",
+        "with today"
+      ]
+    },
+    {
+      "script": "Thank you for being a Northfield Bank Customer. I appreciate the opportunity to serve you .",
+      "keywords": [
+        "Thank you",
+        "appreciate",
+        "opportunity",
+        "serve you"
+      ]
+    },
+    {
+      "script": "One of my responsibilities is to help Customers achieve their financial goals and make their banking more convenient .",
+      "keywords": [
+        "responsibilities",
+        "help Customers achieve",
+        "financial goals",
+        "make",
+        "banking",
+        "convenient"
+      ]
+    },
+    {
+      "script": "Circumstances for our Customers typically change over time , and we are implementing a way to better understand our Customers’ current , and future financial needs , and look for all the ways to be helpful to them.",
+      "keywords": [
+        "Circumstances",
+        "change over time",
+        "implementing",
+        "way to",
+        "understand",
+        "current",
+        "future financial needs",
+        "look",
+        "all",
+        "ways",
+        "helpful"
+      ]
+    },
+    {
+      "script": "It is a complimentary service we provide and, of course, everything will remain confidential .",
+      "keywords": [
+        "complimentary service",
+        "confidential"
+      ]
+    },
+    {
+      "script": "This usually takes only about 10 to 15 minutes .",
+      "keywords": [
+        "about 10 to 15 minutes"
+      ]
+    },
+    {
+      "script": "Let’s get this started for you right now .",
+      "keywords": [
+        "started",
+        "now"
+      ]
+    }
+  ],
+  "user_id": "",
+  "tags": [
+    "test tss (Duplicate)",
+    "Challenge 1 New Member Entry Line"
+  ]
+}

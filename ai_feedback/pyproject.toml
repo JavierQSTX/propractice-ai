@@ -20,6 +20,9 @@ python-jose = {extras = ["cryptography"], version = "^3.4.0"}
 google-genai = "1.38.0"
 openinference-instrumentation-google-genai = "0.1.5"
 instructor = "^1.7.9"
+scikit-learn = "^1.6.1"
+numpy = "^2.2.3"
+click = "^8.1.8"
 
 
 [tool.poetry.group.dev.dependencies]

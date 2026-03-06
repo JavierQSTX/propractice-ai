@@ -13,6 +13,7 @@ A FastAPI-based service that provides AI-powered feedback analysis for video pre
 - [Usage](#usage)
 - [API Endpoints](#api-endpoints)
 - [Project Structure](#project-structure)
+- [Evaluation Pipeline & CI/CD](#evaluation-pipeline--cicd)
 - [Development](#development)
 - [Deployment](#deployment)
 - [Monitoring and Analytics](#monitoring-and-analytics)
@@ -388,11 +389,23 @@ ai_feedback/
 │       ├── prompts.py          # Main AI prompts
 │       ├── conditional_prompts.py  # Conditional prompt logic
 │       └── fallback_prompts.py     # Fallback prompts
+├── evaluation/                 # Evaluation pipeline for feedback quality
+│   ├── evaluation_config.py    # Evaluation configuration
+│   ├── extractor.py            # Extract style coaching from feedback
+│   ├── similarity.py           # Semantic similarity calculation
+│   ├── evaluator.py            # Main evaluation orchestrator
+│   ├── api_client.py           # Feedback API client
+│   ├── run_evaluation.py       # CLI script to run evaluations
+│   ├── README.md               # Evaluation documentation
+│   └── LANGFUSE_GUIDE.md       # Langfuse integration guide
 ├── scripts/                    # Utility scripts
 │   ├── send_request.py         # Test script for API requests
 │   ├── deploy.sh               # Production deployment script
 │   └── deploy-dev.sh           # Development deployment script
 ├── data/                       # Test data and sample videos
+│   ├── sets/                   # Test video sets
+│   ├── challenges/             # Challenge payloads
+│   └── answers/                # Reference answers for evaluation
 ├── Dockerfile                  # Docker container definition
 ├── Makefile                    # Build and deployment commands
 ├── pyproject.toml              # Poetry dependencies and project metadata
@@ -447,6 +460,54 @@ JWT-based authentication:
 - Token creation and validation
 - Password verification
 - Token dependency for protected endpoints
+
+## Evaluation Pipeline & CI/CD
+
+The project includes a comprehensive evaluation system that measures AI feedback quality by comparing generated style coaching against reference answers using semantic similarity.
+
+### Automated CI/CD
+
+The evaluation pipeline runs automatically via `.github/workflows/evaluation.yml`:
+
+> [!NOTE]
+> Evaluations are skipped for **draft Pull Requests** to save API quota. Mark the PR as **"Ready for Review"** to trigger the pipeline.
+
+| Trigger | Experiment name | Result reported as |
+|---|---|---|
+| Pull request → `dev`/`main` | `pr-<number>` | Sticky PR comment with scores |
+| Merge to `main` | `main` | GitHub Actions job summary |
+| Merge to `dev` | `dev` | GitHub Actions job summary |
+| Manual dispatch | custom / `manual-<run>` | GitHub Actions job summary |
+
+#### Required GitHub Secrets
+
+Add these in **Repository → Settings → Secrets and variables → Actions**:
+
+| Secret | Description |
+|---|---|
+| `AI_API_KEY` | Google AI API key (Gemini + embeddings) |
+| `LANGFUSE_SECRET_KEY` | Langfuse secret key |
+| `LANGFUSE_PUBLIC_KEY` | Langfuse public key |
+| `LANGFUSE_HOST` | Langfuse host URL (e.g. `https://us.cloud.langfuse.com`) |
+
+### Quick start (local)
+
+```bash
+# Run evaluation on all test sets
+make evaluate
+
+# Run with custom experiment name
+make evaluate-experiment NAME=prompt_v2
+
+# Run on a specific set
+make evaluate-set SET=set_1 EXP=baseline
+```
+
+### Langfuse — where to find results
+
+All results are stored in **Datasets → `ai_feedback_eval` → Runs** — one row per example, one column per experiment. Each trace also captures the full prompt and a stable `pipeline_run` timestamp tag so you can always trace which exact prompt produced which score.
+
+See [evaluation/README.md](evaluation/README.md) for full setup, Langfuse navigation guide, and prompt-tuning workflow.
 
 ## Development
 
