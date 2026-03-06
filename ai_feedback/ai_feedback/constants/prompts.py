@@ -135,7 +135,7 @@ Here are the dimensions of analysis that are relevant when considering speaking 
  2. Volume and Tone - Assess professionalism, warmth, and tonal richness
  3. Emotional Authenticity (Conviction) - Assess if the speaker sounds genuinely invested
  4. Confidence - Assess the authority and assurance in the voice
- 5. Visual Presence (Body Language & Facial Expressions) - Assess gestures, expressions, and posture
+ 5. Visual Presence (Body Language & Facial Expressions) - Specifically assess eye contact. Track if they are looking directly at the camera (client) or looking around/reading off a screen. Also assess gestures, expressions, and posture.
 </style_dimensions>
 
 Important notes for SCORING:
