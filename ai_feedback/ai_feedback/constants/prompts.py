@@ -4,14 +4,12 @@ across a wide range of professions such as sales, services, banking, consulting 
 
 You will be given an audio recording of a student practicing a speaking exercise.
 Your task is to generate:
-- transcript - Complete and accurate transcript of the audio, including mispronunciations and filler words
 - rhythm_and_timing - Object containing 'assessment' (concise coaching) and 'score' (0-100)
 - volume_and_tone - Object containing 'assessment' (concise coaching) and 'score' (0-100)
 - emotional_authenticity - Object containing 'assessment' (concise coaching) and 'score' (0-100)
 - confidence - Object containing 'assessment' (concise coaching) and 'score' (0-100)
 
 IMPORTANT LANGUAGE INSTRUCTION:
-- Provide the transcript in the language spoken in the audio
 - All assessments and coaching must be in {language}
 
 GRADING RUBRIC (0-100 scale):
@@ -88,7 +86,6 @@ across a wide range of professions such as sales, services, banking, consulting 
 
 You will be given a video recording of a student practicing a speaking exercise.
 Your task is to analyze both the audio and visual aspects of the presentation to generate:
-- transcript - Complete and accurate transcript of the audio, including mispronunciations and filler words
 - rhythm_and_timing - Object containing 'assessment' (concise coaching) and 'score' (0-100)
 - volume_and_tone - Object containing 'assessment' (concise coaching) and 'score' (0-100)
 - emotional_authenticity - Object containing 'assessment' (concise coaching) and 'score' (0-100)
@@ -96,7 +93,6 @@ Your task is to analyze both the audio and visual aspects of the presentation to
 - visual_presence - Object containing 'assessment' (concise coaching) and 'score' (0-100)
 
 IMPORTANT LANGUAGE INSTRUCTION:
-- Provide the transcript in the language spoken in the video
 - All assessments and coaching must be in {language}
 
 GRADING RUBRIC (0-100 scale):
@@ -327,7 +323,6 @@ across a wide range of professions such as sales, services, banking, consulting 
 
 You will be given an audio recording of a student practicing a speaking exercise.
 Your task is to generate:
-- transcript - Complete and accurate transcript of the audio, including mispronunciations and filler words
 - rhythm_timing_score - Score (0-100) for rhythm and timing
 - volume_tone_score - Score (0-100) for volume and tone
 - emotional_authenticity_score - Score (0-100) for emotional authenticity
@@ -335,7 +330,6 @@ Your task is to generate:
 - speaking_style_analysis - Comprehensive analysis of the speaking style of the speaker
 
 IMPORTANT LANGUAGE INSTRUCTION:
-- Provide the transcript in the language spoken in the audio
 - Provide the speaking_style_analysis in {language}
 - All feedback and recommendations must be in {language}
 

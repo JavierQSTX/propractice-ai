@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import subprocess
+import time
 import traceback
 import uuid
 
@@ -70,6 +71,8 @@ async def generate_feedback(
     feedback_input_str: str = Form(...),
     language: SupportedLanguage = Form(SupportedLanguage.ENGLISH),
 ):
+    endpoint_start_time = time.time()
+    timing_logs = []
     try:
         logger.info(f"Feedback request input {feedback_input_str}")
         feedback_input = FeedbackInput.model_validate_json(feedback_input_str)
@@ -79,18 +82,26 @@ async def generate_feedback(
             briefing=feedback_input.briefing,
         )
 
+        t0 = time.time()
         video_content = await video.read()
+        timing_logs.append(f"video_read: {time.time() - t0:.2f}s")
+        
         base64_content_bytes = base64.b64encode(video_content)
         base64_content_str = base64_content_bytes.decode('utf-8')
         logger.info(f"base64Video {base64_content_str}")
 
         # Save video file
+        t0 = time.time()
         video_filename = f"/tmp/{uuid.uuid4()}_{video.filename}"
         with open(video_filename, "wb") as f:
             f.write(video_content)
+        timing_logs.append(f"video_write: {time.time() - t0:.2f}s")
 
+        t0 = time.time()
         audio_filename = convert_video_to_audio(video_filename)
+        timing_logs.append(f"convert_video_to_audio: {time.time() - t0:.2f}s")
 
+        t0 = time.time()
         result = await get_feedback_legacy(
             audio_filename=audio_filename,
             script_details=script_details,
@@ -98,6 +109,10 @@ async def generate_feedback(
             tags=feedback_input.tags,
             language=language.value,
         )
+        timing_logs.append(f"get_feedback_legacy: {time.time() - t0:.2f}s")
+        
+        timing_logs.append(f"Total time: {time.time() - endpoint_start_time:.2f}s")
+        logger.info(f"Performance [Endpoint /feedback]: {' | '.join(timing_logs)}")
         return FeedbackResponseLegacy(**result)
 
     except subprocess.CalledProcessError as e:
@@ -122,6 +137,8 @@ async def generate_feedback_video(
     Generate feedback from video using Gemini's multimodal capabilities.
     Processes video directly without converting to audio first.
     """
+    endpoint_start_time = time.time()
+    timing_logs = []
     try:
         logger.info(f"Video feedback request input {feedback_input_str}")
         feedback_input = FeedbackInput.model_validate_json(feedback_input_str)
@@ -131,14 +148,19 @@ async def generate_feedback_video(
             briefing=feedback_input.briefing,
         )
 
+        t0 = time.time()
         video_content = await video.read()
+        timing_logs.append(f"video_read: {time.time() - t0:.2f}s")
 
         # Save video file
+        t0 = time.time()
         video_filename = f"/tmp/{uuid.uuid4()}_{video.filename}"
         with open(video_filename, "wb") as f:
             f.write(video_content)
+        timing_logs.append(f"video_write: {time.time() - t0:.2f}s")
 
         # Process video directly using multimodal analysis
+        t0 = time.time()
         result = await get_feedback_from_video(
             video_filename=video_filename,
             script_details=script_details,
@@ -146,7 +168,10 @@ async def generate_feedback_video(
             tags=feedback_input.tags,
             language=language.value,
         )
+        timing_logs.append(f"get_feedback_from_video: {time.time() - t0:.2f}s")
         
+        timing_logs.append(f"Total time: {time.time() - endpoint_start_time:.2f}s")
+        logger.info(f"Performance [Endpoint /feedback_video]: {' | '.join(timing_logs)}")
         return FeedbackResponse(**result)
 
     except Exception as e:
@@ -167,12 +192,14 @@ async def generate_feedback_structured(
     video: UploadFile = File(...), 
     feedback_input_str: str = Form(...),
     language: SupportedLanguage = Form(SupportedLanguage.ENGLISH),
-    use_video_analysis: bool = Form(True),
+    use_video_analysis: bool = Form(False),
 ):
     """
     Generate fully structured feedback. 
     By default uses multimodal video analysis, falls back to audio-only if use_video_analysis is False.
     """
+    endpoint_start_time = time.time()
+    timing_logs = []
     try:
         feedback_input = FeedbackInput.model_validate_json(feedback_input_str)
         script_details = ScriptDetails(
@@ -181,12 +208,18 @@ async def generate_feedback_structured(
             briefing=feedback_input.briefing,
         )
 
+        t0 = time.time()
         video_content = await video.read()
+        timing_logs.append(f"video_read: {time.time() - t0:.2f}s")
+        
+        t0 = time.time()
         video_filename = f"/tmp/{uuid.uuid4()}_{video.filename}"
         with open(video_filename, "wb") as f:
             f.write(video_content)
+        timing_logs.append(f"video_write: {time.time() - t0:.2f}s")
 
         if use_video_analysis:
+            t0 = time.time()
             result = await get_feedback_from_video(
                 video_filename=video_filename,
                 script_details=script_details,
@@ -194,8 +227,13 @@ async def generate_feedback_structured(
                 tags=feedback_input.tags,
                 language=language.value,
             )
+            timing_logs.append(f"get_feedback_from_video: {time.time() - t0:.2f}s")
         else:
+            t0 = time.time()
             audio_filename = convert_video_to_audio(video_filename)
+            timing_logs.append(f"convert_video_to_audio: {time.time() - t0:.2f}s")
+            
+            t0 = time.time()
             result = await get_feedback(
                 audio_filename=audio_filename,
                 script_details=script_details,
@@ -203,7 +241,10 @@ async def generate_feedback_structured(
                 tags=feedback_input.tags,
                 language=language.value,
             )
+            timing_logs.append(f"get_feedback: {time.time() - t0:.2f}s")
         
+        timing_logs.append(f"Total time: {time.time() - endpoint_start_time:.2f}s")
+        logger.info(f"Performance [Endpoint /feedback_structured]: {' | '.join(timing_logs)}")
         return StructuredFeedbackResponse(**result)
 
     except Exception as e:
