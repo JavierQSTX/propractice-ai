@@ -1,0 +1,22 @@
+{
+    "feedback": "## Content Assessment of Key Elements\n\n| **Key Elements** | **Recording matches** | **Score** |\n|-----------------|-----------------------|-----------|\n| - **Thank you** | ✅ Yes | 100% |\n| - my responsibility \\| **help Members achieve** \\| **financial goals** \\| make \\| banking \\| convenient | ⚠️ Partially | 33% |\n| - Circumstances \\| change over time \\| implementing \\| way \\| **understand** \\| **current** \\| **future financial needs** \\| look \\| all \\| ways \\| **be helpful** | ⚠️ Partially | 36% |\n| - helped others save time \\| money \\| ask \\| few questions \\| **see** \\| do \\| same for you. | ⚠️ Partially | 14% |\n| - **about 10-15 minutes** | ✅ Yes | 100% |\n| - **complimentary service** \\| course \\| **confidential** | ⚠️ Partially | 66% |\n| - **get started** \\| **now** | ✅ Yes | 100% |*only bolded keywords are mentioned during the recording\n\n## Style Coaching Recommendations\n\n* Rhythm & Timing: Try to smooth out the transition when you pause after '10, 15 minutes' to keep the momentum of your pitch more consistent.\n* Volume and Tone: Enhance your tonal variety when mentioning 'complimentary service' to sound more inviting and highlight the special value you are offering.\n* Emotional Authenticity: Show more facial animation when discussing the 'future' to demonstrate a sincere interest in the long-term well-being of the client.\n* Confidence: Speak with more certainty when saying 'very confidential' to reassure the client and build immediate trust in the security of the process.",
+    "accuracy": 64,
+    "confidence": 70,
+    "session_id": "074dc924-4396-4a42-b056-19b99d92cfec",
+    "rhythm_and_timing": {
+        "assessment": "Try to smooth out the transition when you pause after '10, 15 minutes' to keep the momentum of your pitch more consistent.",
+        "score": 66
+    },
+    "volume_and_tone": {
+        "assessment": "Enhance your tonal variety when mentioning 'complimentary service' to sound more inviting and highlight the special value you are offering.",
+        "score": 72
+    },
+    "emotional_authenticity": {
+        "assessment": "Show more facial animation when discussing the 'future' to demonstrate a sincere interest in the long-term well-being of the client.",
+        "score": 69
+    },
+    "confidence_detail": {
+        "assessment": "Speak with more certainty when saying 'very confidential' to reassure the client and build immediate trust in the security of the process.",
+        "score": 74
+    }
+}
