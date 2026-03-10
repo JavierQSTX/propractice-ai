@@ -79,9 +79,6 @@ class LangfuseTracesRequest(BaseModel):
 
 
 class AudioAnalysis(BaseModel):
-    transcript: str = Field(
-        description="Complete and accurate transcript of the audio, including mispronounciations and filler words"
-    )
     rhythm_and_timing: StyleCategory = Field(
         description="""Analysis and score (0-100) for rhythm and timing:
         90-100: Natural and conversational flow, excellent pacing
@@ -125,9 +122,6 @@ class AudioAnalysis(BaseModel):
 
 
 class AudioAnalysisLegacy(BaseModel):
-    transcript: str = Field(
-        description="Complete and accurate transcript of the audio, including mispronounciations and filler words"
-    )
     speaking_style_analysis: str = Field(
         description="Comprehensive analysis of the vocal style of the speaker"
     )
