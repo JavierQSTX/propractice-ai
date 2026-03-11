@@ -83,6 +83,7 @@ async def delete_gemini_file(file_name: str):
     except Exception as e:
         logger.warning(f"Failed to delete uploaded file in background: {e}")
 
+
 def get_scores_and_matching_keywords(
     keyword_equivalents: LessonDetailsExtractedKeywords,
 ) -> tuple[dict[str, int], dict[str, list[str]]]:
@@ -749,4 +750,3 @@ async def get_feedback_from_video(
         "emotional_authenticity": video_analysis.emotional_authenticity,
         "confidence_detail": video_analysis.confidence,
     }
-

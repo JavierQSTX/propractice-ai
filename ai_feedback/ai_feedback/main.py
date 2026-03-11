@@ -18,7 +18,12 @@ from fastapi import (
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
-from ai_feedback.ai import get_feedback, judge_feedback, get_feedback_from_video, get_feedback_legacy
+from ai_feedback.ai import (
+    get_feedback,
+    judge_feedback,
+    get_feedback_from_video,
+    get_feedback_legacy,
+)
 from ai_feedback.authentication import verify_token, create_access_token
 from ai_feedback.config import settings
 from ai_feedback.models import (
@@ -34,7 +39,8 @@ from ai_feedback.models import (
 from ai_feedback.utils import (
     convert_video_to_audio,
     langfuse_user_like,
-    fetch_feedback_input_output, )
+    fetch_feedback_input_output,
+)
 
 app = FastAPI()
 
@@ -73,10 +79,12 @@ async def login(request: Request):
 
 
 @app.post(
-    "/feedback", response_model=FeedbackResponseLegacy, dependencies=[Depends(verify_token)]
+    "/feedback",
+    response_model=FeedbackResponseLegacy,
+    dependencies=[Depends(verify_token)],
 )
 async def generate_feedback(
-    video: UploadFile = File(...), 
+    video: UploadFile = File(...),
     feedback_input_str: str = Form(...),
     language: SupportedLanguage = Form(SupportedLanguage.ENGLISH),
 ):
@@ -94,9 +102,9 @@ async def generate_feedback(
         t0 = time.time()
         video_content = await video.read()
         timing_logs.append(f"video_read: {time.time() - t0:.2f}s")
-        
+
         base64_content_bytes = base64.b64encode(video_content)
-        base64_content_str = base64_content_bytes.decode('utf-8')
+        base64_content_str = base64_content_bytes.decode("utf-8")
         logger.info(f"base64Video {base64_content_str}")
 
         # Save video file
@@ -119,10 +127,10 @@ async def generate_feedback(
             language=language.value,
         )
         timing_logs.append(f"get_feedback_legacy: {time.time() - t0:.2f}s")
-        
+
         asyncio.create_task(delete_local_file(video_filename))
         asyncio.create_task(delete_local_file(audio_filename))
-        
+
         timing_logs.append(f"Total time: {time.time() - endpoint_start_time:.2f}s")
         logger.info(f"Performance [Endpoint /feedback]: {' | '.join(timing_logs)}")
         return FeedbackResponseLegacy(**result)
@@ -138,10 +146,12 @@ async def generate_feedback(
 
 
 @app.post(
-    "/feedback_video", response_model=FeedbackResponse, dependencies=[Depends(verify_token)]
+    "/feedback_video",
+    response_model=FeedbackResponse,
+    dependencies=[Depends(verify_token)],
 )
 async def generate_feedback_video(
-    video: UploadFile = File(...), 
+    video: UploadFile = File(...),
     feedback_input_str: str = Form(...),
     language: SupportedLanguage = Form(SupportedLanguage.ENGLISH),
 ):
@@ -181,11 +191,13 @@ async def generate_feedback_video(
             language=language.value,
         )
         timing_logs.append(f"get_feedback_from_video: {time.time() - t0:.2f}s")
-            
+
         asyncio.create_task(delete_local_file(video_filename))
-        
+
         timing_logs.append(f"Total time: {time.time() - endpoint_start_time:.2f}s")
-        logger.info(f"Performance [Endpoint /feedback_video]: {' | '.join(timing_logs)}")
+        logger.info(
+            f"Performance [Endpoint /feedback_video]: {' | '.join(timing_logs)}"
+        )
         return FeedbackResponse(**result)
 
     except Exception as e:
@@ -196,20 +208,19 @@ async def generate_feedback_video(
         )
 
 
-
 @app.post(
-    "/feedback_structured", 
-    response_model=StructuredFeedbackResponse, 
-    dependencies=[Depends(verify_token)]
+    "/feedback_structured",
+    response_model=StructuredFeedbackResponse,
+    dependencies=[Depends(verify_token)],
 )
 async def generate_feedback_structured(
-    video: UploadFile = File(...), 
+    video: UploadFile = File(...),
     feedback_input_str: str = Form(...),
     language: SupportedLanguage = Form(SupportedLanguage.ENGLISH),
     use_video_analysis: bool = Form(False),
 ):
     """
-    Generate fully structured feedback. 
+    Generate fully structured feedback.
     By default uses multimodal video analysis, falls back to audio-only if use_video_analysis is False.
     """
     endpoint_start_time = time.time()
@@ -225,7 +236,7 @@ async def generate_feedback_structured(
         t0 = time.time()
         video_content = await video.read()
         timing_logs.append(f"video_read: {time.time() - t0:.2f}s")
-        
+
         t0 = time.time()
         video_filename = f"/tmp/{uuid.uuid4()}_{video.filename}"
         with open(video_filename, "wb") as f:
@@ -242,13 +253,13 @@ async def generate_feedback_structured(
                 language=language.value,
             )
             timing_logs.append(f"get_feedback_from_video: {time.time() - t0:.2f}s")
-                
+
             asyncio.create_task(delete_local_file(video_filename))
         else:
             t0 = time.time()
             audio_filename = convert_video_to_audio(video_filename)
             timing_logs.append(f"convert_video_to_audio: {time.time() - t0:.2f}s")
-            
+
             t0 = time.time()
             result = await get_feedback(
                 audio_filename=audio_filename,
@@ -260,9 +271,11 @@ async def generate_feedback_structured(
             timing_logs.append(f"get_feedback: {time.time() - t0:.2f}s")
             asyncio.create_task(delete_local_file(video_filename))
             asyncio.create_task(delete_local_file(audio_filename))
-        
+
         timing_logs.append(f"Total time: {time.time() - endpoint_start_time:.2f}s")
-        logger.info(f"Performance [Endpoint /feedback_structured]: {' | '.join(timing_logs)}")
+        logger.info(
+            f"Performance [Endpoint /feedback_structured]: {' | '.join(timing_logs)}"
+        )
         return StructuredFeedbackResponse(**result)
 
     except Exception as e:
