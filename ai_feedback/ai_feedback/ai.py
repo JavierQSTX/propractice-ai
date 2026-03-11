@@ -363,6 +363,39 @@ async def get_keyword_equivalents(
     return keyword_equivalents.parsed
 
 
+async def process_text_feedback(transcript, script_details, session_id, language, timing_logs):
+    t0_kw = time.time()
+    kw_eq = await get_keyword_equivalents(
+        transcript=transcript,
+        script_details=script_details,
+        session_id=session_id,
+        language=language,
+    )
+    timing_logs.append(f"get_keyword_equivalents: {time.time() - t0_kw:.2f}s")
+
+    logger.info(f"Keyword equivalents: {kw_eq}")
+    scores, matching_keywords = get_scores_and_matching_keywords(kw_eq)
+    logger.info(f"Scores: {scores}")
+    logger.info(f"Matched keywords: {matching_keywords}")
+
+    try:
+        average_score = int(sum(scores.values()) / len(scores))
+    except ZeroDivisionError:
+        average_score = 0
+
+    t0_text = time.time()
+    txt_analysis = await get_text_analysis(
+        transcript=transcript,
+        script_details=script_details,
+        scores=scores,
+        matching_keywords=matching_keywords,
+        session_id=session_id,
+        language=language,
+    )
+    timing_logs.append(f"get_text_analysis: {time.time() - t0_text:.2f}s")
+    return kw_eq, txt_analysis, average_score, timing_logs
+
+
 async def judge_feedback(
     *, ai_input: str, ai_feedback: str, session_id: str
 ) -> LessonDetailsExtractedKeywords:
@@ -405,44 +438,12 @@ async def get_feedback(
     t0 = time.time()
     transcript = await get_fast_transcription(audio, language)
     timing_logs.append(f"get_fast_transcription: {time.time() - t0:.2f}s")
-    
-    async def process_text_feedback():
-        t0_kw = time.time()
-        kw_eq = await get_keyword_equivalents(
-            transcript=transcript,
-            script_details=script_details,
-            session_id=session_id,
-            language=language,
-        )
-        timing_logs.append(f"get_keyword_equivalents: {time.time() - t0_kw:.2f}s")
-        
-        logger.info(f"Keyword equivalents: {kw_eq}")
-        scores, matching_keywords = get_scores_and_matching_keywords(kw_eq)
-        logger.info(f"Scores: {scores}")
-        logger.info(f"Matched keywords: {matching_keywords}")
-
-        try:
-            average_score = int(sum(scores.values()) / len(scores))
-        except ZeroDivisionError:
-            average_score = 0
-
-        t0_text = time.time()
-        txt_analysis = await get_text_analysis(
-            transcript=transcript,
-            script_details=script_details,
-            scores=scores,
-            matching_keywords=matching_keywords,
-            session_id=session_id,
-            language=language,
-        )
-        timing_logs.append(f"get_text_analysis: {time.time() - t0_text:.2f}s")
-        return kw_eq, txt_analysis, average_score
 
     audio_analysis_coro = get_audio_analysis(audio, session_id, language)
-    text_feedback_coro = process_text_feedback()
+    text_feedback_coro = process_text_feedback(transcript, script_details, session_id, language, timing_logs)
 
     t0_gather = time.time()
-    audio_analysis, (keyword_equivalents, text_analysis, average_score) = await asyncio.gather(
+    audio_analysis, (keyword_equivalents, text_analysis, average_score, timing_logs) = await asyncio.gather(
         audio_analysis_coro,
         text_feedback_coro
     )
@@ -524,43 +525,11 @@ async def get_feedback_legacy(
     transcript = await get_fast_transcription(audio, language)
     timing_logs.append(f"get_fast_transcription: {time.time() - t0:.2f}s")
 
-    async def process_text_feedback():
-        t0_kw = time.time()
-        kw_eq = await get_keyword_equivalents(
-            transcript=transcript,
-            script_details=script_details,
-            session_id=session_id,
-            language=language,
-        )
-        timing_logs.append(f"get_keyword_equivalents: {time.time() - t0_kw:.2f}s")
-        
-        logger.info(f"Keyword equivalents: {kw_eq}")
-        scores, matching_keywords = get_scores_and_matching_keywords(kw_eq)
-        logger.info(f"Scores: {scores}")
-        logger.info(f"Matched keywords: {matching_keywords}")
-
-        try:
-            average_score = int(sum(scores.values()) / len(scores))
-        except ZeroDivisionError:
-            average_score = 0
-
-        t0_text = time.time()
-        txt_analysis = await get_text_analysis(
-            transcript=transcript,
-            script_details=script_details,
-            scores=scores,
-            matching_keywords=matching_keywords,
-            session_id=session_id,
-            language=language,
-        )
-        timing_logs.append(f"get_text_analysis: {time.time() - t0_text:.2f}s")
-        return kw_eq, txt_analysis, average_score
-
     audio_analysis_legacy_coro = get_audio_analysis_legacy(audio, session_id, language)
-    text_feedback_coro = process_text_feedback()
+    text_feedback_coro = process_text_feedback(transcript, script_details, session_id, language, timing_logs)
 
     t0_gather = time.time()
-    audio_analysis, (keyword_equivalents, text_analysis, average_score) = await asyncio.gather(
+    audio_analysis, (keyword_equivalents, text_analysis, average_score, timing_logs) = await asyncio.gather(
         audio_analysis_legacy_coro,
         text_feedback_coro
     )
@@ -650,45 +619,11 @@ async def get_feedback_from_video(
     myfile, transcript = await asyncio.gather(upload_task, transcription_task)
     timing_logs.append(f"video_upload_and_transcription: {time.time() - t0_upload_transcribe:.2f}s")
 
-    # Run analysis and keyword extraction concurrently using gather
-    async def process_text_feedback():
-        t0_kw = time.time()
-        kw_eq = await get_keyword_equivalents(
-            transcript=transcript,
-            script_details=script_details,
-            session_id=session_id,
-            language=language,
-        )
-        timing_logs.append(f"get_keyword_equivalents: {time.time() - t0_kw:.2f}s")
-        
-        logger.info(f"Keyword equivalents: {kw_eq}")
-        scores, matching_keywords = get_scores_and_matching_keywords(kw_eq)
-        logger.info(f"Scores: {scores}")
-        logger.info(f"Matched keywords: {matching_keywords}")
-
-        try:
-            average_score = int(sum(scores.values()) / len(scores))
-        except ZeroDivisionError:
-            average_score = 0
-
-        # Text analysis can now run since scores are computed
-        t0_text = time.time()
-        txt_analysis = await get_text_analysis(
-            transcript=transcript,
-            script_details=script_details,
-            scores=scores,
-            matching_keywords=matching_keywords,
-            session_id=session_id,
-            language=language,
-        )
-        timing_logs.append(f"get_text_analysis: {time.time() - t0_text:.2f}s")
-        return kw_eq, txt_analysis, average_score
-
     video_analysis_coro = get_video_analysis(myfile, session_id, language)
-    text_feedback_coro = process_text_feedback()
+    text_feedback_coro = process_text_feedback(transcript, script_details, session_id, language, timing_logs)
 
     t0_gather = time.time()
-    video_analysis, (keyword_equivalents, text_analysis, average_score) = await asyncio.gather(
+    video_analysis, (keyword_equivalents, text_analysis, average_score, timing_logs) = await asyncio.gather(
         video_analysis_coro,
         text_feedback_coro
     )
