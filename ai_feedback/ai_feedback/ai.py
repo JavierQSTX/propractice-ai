@@ -43,6 +43,16 @@ from ai_feedback.utils import (
 MAX_ITERATIONS = 30        # e.g. ~60 seconds total
 SLEEP_SECONDS = 2
 
+LANGUAGE_TO_WHISPER_CODE = {
+    "english": "en",
+    "german": "de",
+    "dutch": "nl",
+    "french": "fr",
+    "malay": "ms",
+    "spanish": "es",
+    "polish": "pl",
+}
+
 # Initialize Whisper model globally
 logger.info("Initializing Faster Whisper model...")
 try:
@@ -196,7 +206,8 @@ def _transcribe_audio_sync(audio_source: bytes | str, language: str) -> str:
     else:
         audio_input = audio_source
         
-    segments, _ = whisper_model.transcribe(audio_input, language=language[:2])
+    whisper_lang = LANGUAGE_TO_WHISPER_CODE.get(language.lower(), "en")
+    segments, _ = whisper_model.transcribe(audio_input, language=whisper_lang)
     return " ".join([segment.text for segment in segments])
 
 async def get_fast_transcription(audio_source: bytes | str, language: str = SupportedLanguage.ENGLISH.value) -> str:
