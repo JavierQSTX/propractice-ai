@@ -42,8 +42,8 @@ from ai_feedback.utils import (
     generate_session_id,
 )
 
-MAX_ITERATIONS = 30  # e.g. ~60 seconds total
-SLEEP_SECONDS = 2
+MAX_ITERATIONS = 60  # e.g. ~60 seconds total
+SLEEP_SECONDS = 1
 
 LANGUAGE_TO_WHISPER_CODE = {
     "english": "en",
@@ -450,6 +450,51 @@ async def judge_feedback(
     return judged_feedback
 
 
+async def run_audio_pipeline(
+    audio: bytes, session_id: str, language: str, timing_logs: list[str]
+) -> AudioAnalysis:
+    t0_aa = time.time()
+    analysis = await get_audio_analysis(audio, session_id, language)
+    timing_logs.append(f"get_audio_analysis: {time.time() - t0_aa:.2f}s")
+    return analysis
+
+
+async def run_audio_pipeline_legacy(
+    audio: bytes, session_id: str, language: str, timing_logs: list[str]
+) -> AudioAnalysisLegacy:
+    t0_aa = time.time()
+    analysis = await get_audio_analysis_legacy(audio, session_id, language)
+    timing_logs.append(f"get_audio_analysis_legacy: {time.time() - t0_aa:.2f}s")
+    return analysis
+
+
+async def run_video_pipeline(
+    video_filename: str, session_id: str, language: str, timing_logs: list[str]
+) -> tuple[Any, AudioAnalysis]:
+    t0_up = time.time()
+    mfile = await upload_and_wait_for_file(video_filename)
+    timing_logs.append(f"upload_and_wait_for_file: {time.time() - t0_up:.2f}s")
+    t0_va = time.time()
+    analysis = await get_video_analysis(mfile, session_id, language)
+    timing_logs.append(f"get_video_analysis: {time.time() - t0_va:.2f}s")
+    return mfile, analysis
+
+
+async def run_text_pipeline(
+    audio_source: bytes | str,
+    script_details: ScriptDetails,
+    session_id: str,
+    language: str,
+    timing_logs: list[str],
+):
+    t0_tr = time.time()
+    trscrpt = await get_fast_transcription(audio_source, language)
+    timing_logs.append(f"get_fast_transcription: {time.time() - t0_tr:.2f}s")
+    return await process_text_feedback(
+        trscrpt, script_details, session_id, language, timing_logs
+    )
+
+
 async def get_feedback(
     *,
     audio_filename: str,
@@ -465,22 +510,14 @@ async def get_feedback(
 
     audio = read_audio(audio_filename)
 
-    t0 = time.time()
-    transcript = await get_fast_transcription(audio, language)
-    timing_logs.append(f"get_fast_transcription: {time.time() - t0:.2f}s")
-
-    audio_analysis_coro = get_audio_analysis(audio, session_id, language)
-    text_feedback_coro = process_text_feedback(
-        transcript, script_details, session_id, language, timing_logs
-    )
-
     t0_gather = time.time()
-    audio_analysis, (keyword_equivalents, text_analysis, average_score, timing_logs) = (
-        await asyncio.gather(audio_analysis_coro, text_feedback_coro)
+    audio_analysis, text_res = await asyncio.gather(
+        run_audio_pipeline(audio, session_id, language, timing_logs),
+        run_text_pipeline(audio, script_details, session_id, language, timing_logs),
     )
-    timing_logs.append(
-        f"audio_analysis_and_text_chain_gather: {time.time() - t0_gather:.2f}s"
-    )
+    timing_logs.append(f"full_parallel_pipelines_gather: {time.time() - t0_gather:.2f}s")
+
+    keyword_equivalents, text_analysis, average_score, timing_logs = text_res
 
     titles = STYLE_CATEGORY_TITLES.get(
         language, STYLE_CATEGORY_TITLES[SupportedLanguage.ENGLISH.value]
@@ -561,22 +598,14 @@ async def get_feedback_legacy(
 
     audio = read_audio(audio_filename)
 
-    t0 = time.time()
-    transcript = await get_fast_transcription(audio, language)
-    timing_logs.append(f"get_fast_transcription: {time.time() - t0:.2f}s")
-
-    audio_analysis_legacy_coro = get_audio_analysis_legacy(audio, session_id, language)
-    text_feedback_coro = process_text_feedback(
-        transcript, script_details, session_id, language, timing_logs
-    )
-
     t0_gather = time.time()
-    audio_analysis, (keyword_equivalents, text_analysis, average_score, timing_logs) = (
-        await asyncio.gather(audio_analysis_legacy_coro, text_feedback_coro)
+    audio_analysis, text_res = await asyncio.gather(
+        run_audio_pipeline_legacy(audio, session_id, language, timing_logs),
+        run_text_pipeline(audio, script_details, session_id, language, timing_logs),
     )
-    timing_logs.append(
-        f"audio_analysis_legacy_and_text_chain_gather: {time.time() - t0_gather:.2f}s"
-    )
+    timing_logs.append(f"full_parallel_pipelines_gather: {time.time() - t0_gather:.2f}s")
+
+    keyword_equivalents, text_analysis, average_score, timing_logs = text_res
 
     speech_analysis = (
         SPEECH_ANALYSIS_SKIPPED
@@ -661,29 +690,15 @@ async def get_feedback_from_video(
     logger.info(f"Lesson details: {script_details}")
     logger.info(f"Processing video file: {video_filename}")
 
-    t0_upload_transcribe = time.time()
-    upload_task = asyncio.create_task(upload_and_wait_for_file(video_filename))
-    transcription_task = asyncio.create_task(
-        get_fast_transcription(video_filename, language)
-    )
-
-    myfile, transcript = await asyncio.gather(upload_task, transcription_task)
-    timing_logs.append(
-        f"video_upload_and_transcription: {time.time() - t0_upload_transcribe:.2f}s"
-    )
-
-    video_analysis_coro = get_video_analysis(myfile, session_id, language)
-    text_feedback_coro = process_text_feedback(
-        transcript, script_details, session_id, language, timing_logs
-    )
-
     t0_gather = time.time()
-    video_analysis, (keyword_equivalents, text_analysis, average_score, timing_logs) = (
-        await asyncio.gather(video_analysis_coro, text_feedback_coro)
+    video_res, text_res = await asyncio.gather(
+        run_video_pipeline(video_filename, session_id, language, timing_logs),
+        run_text_pipeline(video_filename, script_details, session_id, language, timing_logs),
     )
-    timing_logs.append(
-        f"video_analysis_and_text_chain_gather: {time.time() - t0_gather:.2f}s"
-    )
+    timing_logs.append(f"full_parallel_pipelines_gather: {time.time() - t0_gather:.2f}s")
+
+    myfile, video_analysis = video_res
+    keyword_equivalents, text_analysis, average_score, timing_logs = text_res
 
     asyncio.create_task(delete_gemini_file(myfile.name))
 
