@@ -179,7 +179,8 @@ The student's answer should be concise, clear, confident, direct and use the app
 
 IMPORTANT LANGUAGE INSTRUCTION:
 - Provide all feedback and analysis in {language}
-- The table headers and structure should remain in the format shown, but content should be in {language}
+- ALL text, including table headers, column names, options (like Yes/Partially/No), and content MUST be translated to {language}.
+- EXCEPTION: Keep the texts in the `{key_elements_col}` column EXACTLY as they appear in the `lesson_details` JSON (do NOT translate them). This is required for post-processing.
 
 I have provided some lesson details a transcript and key elements scores.
 
@@ -195,9 +196,9 @@ Each "keyElement" has:
 about this specific keyElement
 
 In a section called "{assessment_heading}", create a markdown table with the following columns:
-- Key Elements
-- Recording Matches (with options Yes/Partially/No)
-- Score
+- {key_elements_col}
+- {recording_matches_col} (with options {yes}/{partially}/{no})
+- {score_col}
 {coaching_column_mention}
 
 
@@ -238,7 +239,7 @@ unique benefits and differentiators while ensuring a smooth and personalized exp
 </key_elements_scores>
 </example_input>
 
-example_output>
+<example_output>
 ## {assessment_heading}
 {table_example}
 </example_output>
@@ -247,10 +248,10 @@ Important notes:
 - You answer needs to be in markdown format
 - For each key element, the score should be taken from the key elements scores input and should be formatted as a percentage.
 - Make sure the table is properly formatted and doesn't have any missing or extra columns or rows.
-- In the "Recording Matches" column of the table:
-    - The "Yes" option should be preceded by ✅ ; this option is selected if the score is exactly 100
-    - The "Partially" option should be preceded by ⚠️ ; this option is selected if the score is between 1 and 99 (both inclusive)
-    - The "No" option should be preceded by ❌ ; this options is selected if the score is exactly 0
+- In the "{recording_matches_col}" column of the table MUST use these exact options:
+    - The "{yes}" option should be preceded by ✅ ; this option is selected if the score is exactly 100
+    - The "{partially}" option should be preceded by ⚠️ ; this option is selected if the score is between 1 and 99 (both inclusive)
+    - The "{no}" option should be preceded by ❌ ; this options is selected if the score is exactly 0
 {coaching_column_instructions}
 """
 
@@ -264,7 +265,8 @@ Additionally, you will also have to decide if the transcript follows the lesson 
 
 IMPORTANT LANGUAGE INSTRUCTION:
 - The transcript may be in any language
-- The lesson details keywords may be in {language}
+- The target language for feedback is {language}
+- You MUST translate each lesson details keyword into {language} and supply it in the `translated_keyword` field.
 - Find semantic equivalents even if the transcript is in a different language than the keywords
 - For example, if keyword is "understand" in English and transcript says "comprender" in Spanish, that's a match
 

@@ -110,11 +110,12 @@ def get_scores_and_matching_keywords(
         score = 0
         key_words = []
         for mapping in key_element.keywords_with_equivalents:
+            kw_to_show = mapping.translated_keyword if mapping.translated_keyword else mapping.keyword
             if mapping.transcript_equivalent == "None":
-                key_words.append(mapping.keyword)
+                key_words.append(kw_to_show)
             else:
                 score += 1
-                key_words.append(f"**{mapping.keyword}**")
+                key_words.append(f"**{kw_to_show}**")
 
         try:
             scores[key_element.script] = int(100 * score / total)
@@ -337,6 +338,12 @@ async def get_text_analysis(
                     ],
                     language=language,
                     assessment_heading=titles["assessment_heading"],
+                    key_elements_col=titles["key_elements_col"],
+                    recording_matches_col=titles["recording_matches_col"],
+                    score_col=titles["score_col"],
+                    yes=titles["yes"],
+                    partially=titles["partially"],
+                    no=titles["no"]
                 ),
             },
             {

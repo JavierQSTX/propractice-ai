@@ -8,7 +8,13 @@ STYLE_CATEGORY_TITLES = {
         "emotional_authenticity": "Emotional Authenticity",
         "confidence": "Confidence",
         "assessment_heading": "Content Assessment of Key Elements",
-        "bolded_keywords": "*only bolded keywords are mentioned during the recording"
+        "bolded_keywords": "*only bolded keywords are mentioned during the recording",
+        "key_elements_col": "Key Elements",
+        "recording_matches_col": "Recording Matches",
+        "score_col": "Score",
+        "yes": "Yes",
+        "partially": "Partially",
+        "no": "No"
     },
     SupportedLanguage.GERMAN.value: {
         "heading": "Stil-Coaching-Empfehlungen",
@@ -17,7 +23,13 @@ STYLE_CATEGORY_TITLES = {
         "emotional_authenticity": "Emotionale Authentizität",
         "confidence": "Selbstvertrauen",
         "assessment_heading": "Inhaltliche Bewertung der Schlüsselelemente",
-        "bolded_keywords": "*nur fettgedruckte Schlüsselwörter werden in der Aufnahme erwähnt"
+        "bolded_keywords": "*nur fettgedruckte Schlüsselwörter werden in der Aufnahme erwähnt",
+        "key_elements_col": "Schlüsselelemente",
+        "recording_matches_col": "Aufnahme stimmt überein",
+        "score_col": "Ergebnis",
+        "yes": "Ja",
+        "partially": "Teilweise",
+        "no": "Nein"
     },
     SupportedLanguage.DUTCH.value: {
         "heading": "Stijl Coaching Aanbevelingen",
@@ -26,7 +38,13 @@ STYLE_CATEGORY_TITLES = {
         "emotional_authenticity": "Emotionele Authenticiteit",
         "confidence": "Zelfvertrouwen",
         "assessment_heading": "Inhoudelijke Beoordeling van de Kernelementen",
-        "bolded_keywords": "*alleen vetgedrukte sleutelwoorden worden in de opname genoemd"
+        "bolded_keywords": "*alleen vetgedrukte sleutelwoorden worden in de opname genoemd",
+        "key_elements_col": "Kernelementen",
+        "recording_matches_col": "Opname komt overeen",
+        "score_col": "Score",
+        "yes": "Ja",
+        "partially": "Gedeeltelijk",
+        "no": "Nee"
     },
     SupportedLanguage.FRENCH.value: {
         "heading": "Recommandations de Style et de Coaching",
@@ -35,7 +53,13 @@ STYLE_CATEGORY_TITLES = {
         "emotional_authenticity": "Authenticité Émotionnelle",
         "confidence": "Confiance",
         "assessment_heading": "Évaluation du Contenu des Éléments Clés",
-        "bolded_keywords": "*seuls les mots-clés en gras sont mentionnés dans l'enregistrement"
+        "bolded_keywords": "*seuls les mots-clés en gras sont mentionnés dans l'enregistrement",
+        "key_elements_col": "Éléments Clés",
+        "recording_matches_col": "Correspondance de l'enregistrement",
+        "score_col": "Score",
+        "yes": "Oui",
+        "partially": "Partiellement",
+        "no": "Non"
     },
     SupportedLanguage.MALAY.value: {
         "heading": "Cadangan Bimbingan Gaya",
@@ -44,7 +68,13 @@ STYLE_CATEGORY_TITLES = {
         "emotional_authenticity": "Keaslian Emosi",
         "confidence": "Keyakinan",
         "assessment_heading": "Penilaian Kandungan Elemen Utama",
-        "bolded_keywords": "*hanya kata kunci yang dihitamkan disebut semasa rakaman"
+        "bolded_keywords": "*hanya kata kunci yang dihitamkan disebut semasa rakaman",
+        "key_elements_col": "Elemen Utama",
+        "recording_matches_col": "Rakaman SePadan",
+        "score_col": "Markah",
+        "yes": "Ya",
+        "partially": "Sebahagian",
+        "no": "Tidak"
     },
     SupportedLanguage.SPANISH.value: {
         "heading": "Recomendaciones de Entrenamiento de Estilo",
@@ -53,7 +83,13 @@ STYLE_CATEGORY_TITLES = {
         "emotional_authenticity": "Autenticidad Emocional",
         "confidence": "Confianza",
         "assessment_heading": "Evaluación de Contenido de Elementos Clave",
-        "bolded_keywords": "*solo las palabras clave en negrita se mencionan durante la grabación"
+        "bolded_keywords": "*solo las palabras clave en negrita se mencionan durante la grabación",
+        "key_elements_col": "Elementos Clave",
+        "recording_matches_col": "Coincidencias en la grabación",
+        "score_col": "Puntuación",
+        "yes": "Sí",
+        "partially": "Parcialmente",
+        "no": "No"
     },
     SupportedLanguage.POLISH.value: {
         "heading": "Rekomendacje Dodatkowe dotyczące Stylu",
@@ -62,6 +98,12 @@ STYLE_CATEGORY_TITLES = {
         "emotional_authenticity": "Emocjonalna Autentyczność",
         "confidence": "Pewność Siebie",
         "assessment_heading": "Ocena Treści Kluczowych Elementów",
-        "bolded_keywords": "*tylko pogrubione słowa kluczowe są wspomniane podczas nagrania"
+        "bolded_keywords": "*tylko pogrubione słowa kluczowe są wspomniane podczas nagrania",
+        "key_elements_col": "Kluczowe Elementy",
+        "recording_matches_col": "Zgodność nagrania",
+        "score_col": "Wynik",
+        "yes": "Tak",
+        "partially": "Częściowo",
+        "no": "Nie"
     }
 }

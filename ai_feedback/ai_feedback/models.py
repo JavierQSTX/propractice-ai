@@ -133,6 +133,10 @@ class AudioAnalysisLegacy(BaseModel):
 
 class KeywordMapping(BaseModel):
     keyword: str = Field(description="The required keyword")
+    translated_keyword: str = Field(
+        default="",
+        description="The original keyword TRANSLATED into the target language requested in the prompt. If the requested language is English, this should just be the original keyword."
+    )
     transcript_equivalent: str = Field(
         default="None",
         description="Exact match or equivalent formulation, if found in the transcript. If not found the 'None' string should be used",
