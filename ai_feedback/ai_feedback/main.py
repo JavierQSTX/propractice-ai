@@ -4,6 +4,7 @@ import subprocess
 import time
 import traceback
 import uuid
+import os
 
 from fastapi import (
     FastAPI,
@@ -33,8 +34,7 @@ from ai_feedback.models import (
 from ai_feedback.utils import (
     convert_video_to_audio,
     langfuse_user_like,
-    fetch_feedback_input_output,
-)
+    fetch_feedback_input_output, )
 
 app = FastAPI()
 
@@ -48,6 +48,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+async def delete_local_file(filepath: str):
+    try:
+        if os.path.exists(filepath):
+            os.remove(filepath)
+            logger.info(f"Deleted local temporary file: {filepath}")
+    except Exception as e:
+        logger.warning(f"Failed to delete local temporary file: {e}")
 
 
 @app.post("/login")
@@ -111,6 +120,9 @@ async def generate_feedback(
         )
         timing_logs.append(f"get_feedback_legacy: {time.time() - t0:.2f}s")
         
+        asyncio.create_task(delete_local_file(video_filename))
+        asyncio.create_task(delete_local_file(audio_filename))
+        
         timing_logs.append(f"Total time: {time.time() - endpoint_start_time:.2f}s")
         logger.info(f"Performance [Endpoint /feedback]: {' | '.join(timing_logs)}")
         return FeedbackResponseLegacy(**result)
@@ -169,6 +181,8 @@ async def generate_feedback_video(
             language=language.value,
         )
         timing_logs.append(f"get_feedback_from_video: {time.time() - t0:.2f}s")
+            
+        asyncio.create_task(delete_local_file(video_filename))
         
         timing_logs.append(f"Total time: {time.time() - endpoint_start_time:.2f}s")
         logger.info(f"Performance [Endpoint /feedback_video]: {' | '.join(timing_logs)}")
@@ -228,6 +242,8 @@ async def generate_feedback_structured(
                 language=language.value,
             )
             timing_logs.append(f"get_feedback_from_video: {time.time() - t0:.2f}s")
+                
+            asyncio.create_task(delete_local_file(video_filename))
         else:
             t0 = time.time()
             audio_filename = convert_video_to_audio(video_filename)
@@ -242,6 +258,8 @@ async def generate_feedback_structured(
                 language=language.value,
             )
             timing_logs.append(f"get_feedback: {time.time() - t0:.2f}s")
+            asyncio.create_task(delete_local_file(video_filename))
+            asyncio.create_task(delete_local_file(audio_filename))
         
         timing_logs.append(f"Total time: {time.time() - endpoint_start_time:.2f}s")
         logger.info(f"Performance [Endpoint /feedback_structured]: {' | '.join(timing_logs)}")

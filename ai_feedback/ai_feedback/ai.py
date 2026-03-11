@@ -76,6 +76,13 @@ instructor_client = instructor.from_openai(client)
 genai_client = genai.Client(api_key=settings.ai_api_key)
 
 
+async def delete_gemini_file(file_name: str):
+    try:
+        await genai_client.aio.files.delete(name=file_name)
+        logger.info(f"Deleted uploaded file in background: {file_name}")
+    except Exception as e:
+        logger.warning(f"Failed to delete uploaded file in background: {e}")
+
 def get_scores_and_matching_keywords(
     keyword_equivalents: LessonDetailsExtractedKeywords,
 ) -> tuple[dict[str, int], dict[str, list[str]]]:
@@ -677,11 +684,7 @@ async def get_feedback_from_video(
         f"video_analysis_and_text_chain_gather: {time.time() - t0_gather:.2f}s"
     )
 
-    try:
-        await genai_client.aio.files.delete(name=myfile.name)
-        logger.info(f"Deleted uploaded file: {myfile.name}")
-    except Exception as e:
-        logger.warning(f"Failed to delete uploaded file: {e}")
+    asyncio.create_task(delete_gemini_file(myfile.name))
 
     titles = STYLE_CATEGORY_TITLES.get(
         language, STYLE_CATEGORY_TITLES[SupportedLanguage.ENGLISH.value]
@@ -746,3 +749,4 @@ async def get_feedback_from_video(
         "emotional_authenticity": video_analysis.emotional_authenticity,
         "confidence_detail": video_analysis.confidence,
     }
+
