@@ -55,13 +55,13 @@ LANGUAGE_TO_WHISPER_CODE = {
     "polish": "pl",
 }
 
-# Initialize Whisper model globally
+
 logger.info("Initializing Faster Whisper model...")
 try:
     whisper_model = WhisperModel("base", device="cpu", compute_type="int8")
     logger.info("Faster Whisper model loaded successfully.")
 except Exception as e:
-    logger.warning(f"Failed to load Whisper model: {e}")
+    logger.exception(f"Failed to load Whisper model: {e}")
     whisper_model = None
 
 langfuse = get_client()
@@ -110,7 +110,11 @@ def get_scores_and_matching_keywords(
         score = 0
         key_words = []
         for mapping in key_element.keywords_with_equivalents:
-            kw_to_show = mapping.translated_keyword if mapping.translated_keyword else mapping.keyword
+            kw_to_show = (
+                mapping.translated_keyword
+                if mapping.translated_keyword
+                else mapping.keyword
+            )
             if mapping.transcript_equivalent == "None":
                 key_words.append(kw_to_show)
             else:
@@ -343,7 +347,7 @@ async def get_text_analysis(
                     score_col=titles["score_col"],
                     yes=titles["yes"],
                     partially=titles["partially"],
-                    no=titles["no"]
+                    no=titles["no"],
                 ),
             },
             {
@@ -522,7 +526,9 @@ async def get_feedback(
         run_audio_pipeline(audio, session_id, language, timing_logs),
         run_text_pipeline(audio, script_details, session_id, language, timing_logs),
     )
-    timing_logs.append(f"full_parallel_pipelines_gather: {time.time() - t0_gather:.2f}s")
+    timing_logs.append(
+        f"full_parallel_pipelines_gather: {time.time() - t0_gather:.2f}s"
+    )
 
     keyword_equivalents, text_analysis, average_score, timing_logs = text_res
 
@@ -610,7 +616,9 @@ async def get_feedback_legacy(
         run_audio_pipeline_legacy(audio, session_id, language, timing_logs),
         run_text_pipeline(audio, script_details, session_id, language, timing_logs),
     )
-    timing_logs.append(f"full_parallel_pipelines_gather: {time.time() - t0_gather:.2f}s")
+    timing_logs.append(
+        f"full_parallel_pipelines_gather: {time.time() - t0_gather:.2f}s"
+    )
 
     keyword_equivalents, text_analysis, average_score, timing_logs = text_res
 
@@ -700,9 +708,13 @@ async def get_feedback_from_video(
     t0_gather = time.time()
     video_res, text_res = await asyncio.gather(
         run_video_pipeline(video_filename, session_id, language, timing_logs),
-        run_text_pipeline(video_filename, script_details, session_id, language, timing_logs),
+        run_text_pipeline(
+            video_filename, script_details, session_id, language, timing_logs
+        ),
     )
-    timing_logs.append(f"full_parallel_pipelines_gather: {time.time() - t0_gather:.2f}s")
+    timing_logs.append(
+        f"full_parallel_pipelines_gather: {time.time() - t0_gather:.2f}s"
+    )
 
     myfile, video_analysis = video_res
     keyword_equivalents, text_analysis, average_score, timing_logs = text_res

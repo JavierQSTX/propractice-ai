@@ -209,15 +209,14 @@ async def generate_feedback_video(
 
 
 @app.post(
-    "/feedback_structured",
+    "/feedback_audio",
     response_model=StructuredFeedbackResponse,
     dependencies=[Depends(verify_token)],
 )
-async def generate_feedback_structured(
+async def generate_feedback_audio(
     video: UploadFile = File(...),
     feedback_input_str: str = Form(...),
     language: SupportedLanguage = Form(SupportedLanguage.ENGLISH),
-    use_video_analysis: bool = Form(False),
 ):
     """
     Generate fully structured feedback.
@@ -243,34 +242,21 @@ async def generate_feedback_structured(
             f.write(video_content)
         timing_logs.append(f"video_write: {time.time() - t0:.2f}s")
 
-        if use_video_analysis:
-            t0 = time.time()
-            result = await get_feedback_from_video(
-                video_filename=video_filename,
-                script_details=script_details,
-                user_id=feedback_input.user_id,
-                tags=feedback_input.tags,
-                language=language.value,
-            )
-            timing_logs.append(f"get_feedback_from_video: {time.time() - t0:.2f}s")
+        t0 = time.time()
+        audio_filename = convert_video_to_audio(video_filename)
+        timing_logs.append(f"convert_video_to_audio: {time.time() - t0:.2f}s")
 
-            asyncio.create_task(delete_local_file(video_filename))
-        else:
-            t0 = time.time()
-            audio_filename = convert_video_to_audio(video_filename)
-            timing_logs.append(f"convert_video_to_audio: {time.time() - t0:.2f}s")
-
-            t0 = time.time()
-            result = await get_feedback(
-                audio_filename=audio_filename,
-                script_details=script_details,
-                user_id=feedback_input.user_id,
-                tags=feedback_input.tags,
-                language=language.value,
-            )
-            timing_logs.append(f"get_feedback: {time.time() - t0:.2f}s")
-            asyncio.create_task(delete_local_file(video_filename))
-            asyncio.create_task(delete_local_file(audio_filename))
+        t0 = time.time()
+        result = await get_feedback(
+            audio_filename=audio_filename,
+            script_details=script_details,
+            user_id=feedback_input.user_id,
+            tags=feedback_input.tags,
+            language=language.value,
+        )
+        timing_logs.append(f"get_feedback: {time.time() - t0:.2f}s")
+        asyncio.create_task(delete_local_file(video_filename))
+        asyncio.create_task(delete_local_file(audio_filename))
 
         timing_logs.append(f"Total time: {time.time() - endpoint_start_time:.2f}s")
         logger.info(
