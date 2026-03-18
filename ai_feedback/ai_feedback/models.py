@@ -45,6 +45,7 @@ class FeedbackResponse(BaseModel):
     volume_and_tone: Optional[StyleCategory] = None
     emotional_authenticity: Optional[StyleCategory] = None
     confidence_detail: Optional[StyleCategory] = None
+    ultimate_feedback: Optional[StyleCategory] = None
 
 
 class FeedbackResponseLegacy(BaseModel):
@@ -118,6 +119,10 @@ class AudioAnalysis(BaseModel):
     visual_presence: Optional[StyleCategory] = Field(
         default=None,
         description="Analysis and score (0-100) for visual presence (only for video)"
+    )
+    ultimate_feedback: Optional[StyleCategory] = Field(
+        default=None,
+        description="Analysis and score (0-100) for ultimate feedback (visual behaviors, only for video)"
     )
 
 

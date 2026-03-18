@@ -47,7 +47,7 @@ This service is designed to evaluate video presentations against predefined scri
 ### AI Models
 
 The service uses Google's Gemini models:
-- Primary model: `gemini-2.0-flash`
+- Primary model: `gemini-3.1-flash-lite-preview`
 - Supports both OpenAI-compatible API and native Google GenAI SDK
 
 ## Architecture
@@ -465,9 +465,13 @@ JWT-based authentication:
 
 The project includes a comprehensive evaluation system that measures AI feedback quality by comparing generated style coaching against reference answers using semantic similarity.
 
+**⚠️ CRITICAL: Changes should NOT be merged if the evaluation pipeline performance drops compared to the baseline.**
+
 ### Automated CI/CD
 
-The evaluation pipeline runs automatically via `.github/workflows/evaluation.yml`:
+The evaluation pipeline runs automatically on each Pull Request via `.github/workflows/evaluation.yml`. This ensures that any changes to prompts, models, or processing logic do not negatively impact the quality of the feedback.
+
+![GitHub Evaluation Report](data/docs/github-evaluation.jpg)
 
 > [!NOTE]
 > Evaluations are skipped for **draft Pull Requests** to save API quota. Mark the PR as **"Ready for Review"** to trigger the pipeline.
@@ -478,6 +482,22 @@ The evaluation pipeline runs automatically via `.github/workflows/evaluation.yml
 | Merge to `main` | `main` | GitHub Actions job summary |
 | Merge to `dev` | `dev` | GitHub Actions job summary |
 | Manual dispatch | custom / `manual-<run>` | GitHub Actions job summary |
+
+### Metrics and Judgment
+
+The evaluation calculates a **Semantic Similarity Score (0.0 to 1.0)** for each feedback category by comparing the AI-generated coaching to a golden reference.
+
+*   **1.0 (Perfect Match):** The generated feedback carries the exact same semantic meaning and actionable advice as the reference.
+*   **0.8 - 0.99 (Strong Match):** The feedback is highly similar, capturing the core advice with slightly different phrasing.
+*   **< 0.8 (Requires Review):** The feedback has drifted from the desired coaching style or missed key points.
+
+**How to Judge:** When reviewing a PR, inspect the Evaluation results. If the overall similarity score drops or specific categories show declines, the changes must be investigated and refined before merging.
+
+### Monitoring on Langfuse
+
+While GitHub provides the high-level summary, the evaluation runs can be monitored closely inside [Langfuse](https://us.cloud.langfuse.com/project/cm98nhha900uuad07kqw6bgx5/datasets/cmm0u6ygu01i0ad07vxoxam6b).
+
+![Langfuse Evaluation Tracking](data/docs/langfuse.jpg)
 
 #### Required GitHub Secrets
 

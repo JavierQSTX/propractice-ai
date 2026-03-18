@@ -747,6 +747,7 @@ async def get_feedback_from_video(
             "emotional_authenticity": skipped_category,
             "confidence_detail": skipped_category,
             "visual_presence": skipped_category,
+            "ultimate_feedback": skipped_category,
         }
 
     titles = STYLE_CATEGORY_TITLES.get(
@@ -757,7 +758,9 @@ async def get_feedback_from_video(
         f"* {titles['rhythm_and_timing']}: {video_analysis.rhythm_and_timing.assessment}\n"
         f"* {titles['volume_and_tone']}: {video_analysis.volume_and_tone.assessment}\n"
         f"* {titles['emotional_authenticity']}: {video_analysis.emotional_authenticity.assessment}\n"
-        f"* {titles['confidence']}: {video_analysis.confidence.assessment}"
+        f"* {titles['confidence']}: {video_analysis.confidence.assessment}\n\n"
+        f"## {titles['ultimate_feedback']}\n\n"
+        f"{video_analysis.ultimate_feedback.assessment if video_analysis.ultimate_feedback else ''}"
     )
 
     # Normal case: return full structured data
@@ -783,4 +786,5 @@ async def get_feedback_from_video(
         "volume_and_tone": video_analysis.volume_and_tone,
         "emotional_authenticity": video_analysis.emotional_authenticity,
         "confidence_detail": video_analysis.confidence,
+        "ultimate_feedback": video_analysis.ultimate_feedback,
     }
