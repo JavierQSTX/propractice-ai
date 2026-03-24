@@ -14,7 +14,8 @@ STYLE_CATEGORY_TITLES = {
         "score_col": "Score",
         "yes": "Yes",
         "partially": "Partially",
-        "no": "No"
+        "no": "No",
+        "ultimate_feedback": "Ultimate Feedback"
     },
     SupportedLanguage.GERMAN.value: {
         "heading": "Stil-Coaching-Empfehlungen",
@@ -29,7 +30,8 @@ STYLE_CATEGORY_TITLES = {
         "score_col": "Ergebnis",
         "yes": "Ja",
         "partially": "Teilweise",
-        "no": "Nein"
+        "no": "Nein",
+        "ultimate_feedback": "Ultimatives Feedback"
     },
     SupportedLanguage.DUTCH.value: {
         "heading": "Stijl Coaching Aanbevelingen",
@@ -44,7 +46,8 @@ STYLE_CATEGORY_TITLES = {
         "score_col": "Score",
         "yes": "Ja",
         "partially": "Gedeeltelijk",
-        "no": "Nee"
+        "no": "Nee",
+        "ultimate_feedback": "Ultieme Feedback"
     },
     SupportedLanguage.FRENCH.value: {
         "heading": "Recommandations de Style et de Coaching",
@@ -59,7 +62,8 @@ STYLE_CATEGORY_TITLES = {
         "score_col": "Score",
         "yes": "Oui",
         "partially": "Partiellement",
-        "no": "Non"
+        "no": "Non",
+        "ultimate_feedback": "Feedback Ultime"
     },
     SupportedLanguage.MALAY.value: {
         "heading": "Cadangan Bimbingan Gaya",
@@ -74,7 +78,8 @@ STYLE_CATEGORY_TITLES = {
         "score_col": "Markah",
         "yes": "Ya",
         "partially": "Sebahagian",
-        "no": "Tidak"
+        "no": "Tidak",
+        "ultimate_feedback": "Maklum Balas Terakhir"
     },
     SupportedLanguage.SPANISH.value: {
         "heading": "Recomendaciones de Entrenamiento de Estilo",
@@ -89,7 +94,8 @@ STYLE_CATEGORY_TITLES = {
         "score_col": "Puntuación",
         "yes": "Sí",
         "partially": "Parcialmente",
-        "no": "No"
+        "no": "No",
+        "ultimate_feedback": "Comentarios Finales"
     },
     SupportedLanguage.POLISH.value: {
         "heading": "Rekomendacje Dodatkowe dotyczące Stylu",
@@ -104,6 +110,7 @@ STYLE_CATEGORY_TITLES = {
         "score_col": "Wynik",
         "yes": "Tak",
         "partially": "Częściowo",
-        "no": "Nie"
+        "no": "Nie",
+        "ultimate_feedback": "Ostateczny Feedback"
     }
 }

@@ -91,6 +91,7 @@ Your task is to analyze both the audio and visual aspects of the presentation to
 - emotional_authenticity - Object containing 'assessment' (concise coaching) and 'score' (0-100)
 - confidence - Object containing 'assessment' (concise coaching) and 'score' (0-100)
 - visual_presence - Object containing 'assessment' (concise coaching) and 'score' (0-100)
+- ultimate_feedback - Object containing 'assessment' (concise coaching) and 'score' (0-100)
 
 IMPORTANT LANGUAGE INSTRUCTION:
 - All assessments and coaching must be in {language}
@@ -132,7 +133,30 @@ Here are the dimensions of analysis that are relevant when considering speaking 
  3. Emotional Authenticity (Conviction) - Assess if the speaker sounds genuinely invested
  4. Confidence - Assess the authority and assurance in the voice
  5. Visual Presence (Body Language & Facial Expressions) - Specifically assess eye contact. Track if they are looking directly at the camera (client) or looking around/reading off a screen. Also assess gestures, expressions, and posture.
+ 6. Ultimate Feedback (Visual Behaviors) - identify visual behaviors that may make the user appear uncomfortable, distracted, unnatural, or as though they are reading from a script.
 </style_dimensions>
+
+Ultimate Feedback Instructions:
+- Identify the one or two most notable visual behaviors in the user’s delivery and provide concise coaching on how to improve them.
+- Purpose: identify visual behaviors that may make the user appear uncomfortable, distracted, unnatural, or as though they are reading from a script.
+- Response rules:
+    * Keep feedback to 1–2 sentences.
+    * Start with what was observed.
+    * Explain the likely effect when helpful.
+    * End with a simple coaching suggestion.
+    * Use supportive, professional wording.
+    * Avoid judgmental phrasing.
+    * Sound like a human coach, not a system alert.
+
+Ultimate Feedback Behavior Examples:
+- Wandering eyesight: "Your eyes moved away from the camera at times. Try to keep your focus centered as if the client were directly in front of you."
+- Looking down too often: "You looked down frequently. Keep your eyes up more consistently to strengthen connection."
+- Limited facial engagement: "Your expression stayed fairly neutral. Add a little more natural expression to show engagement."
+- Distracted body language: "Your body language suggested some distraction. Stay centered and present as if you were in a live client conversation."
+- Poor posture: "Your posture relaxed at times. Sit upright to project more confidence and professionalism."
+- Excessive movement: "You moved frequently during your response. Keep your posture steadier so the focus stays on your message."
+- Low visual energy: "Your visual presence appeared low in energy. Show a little more alertness and engagement."
+- Tension or stiffness: "You appeared somewhat tense. Relax your shoulders and keep a calm, confident presence."
 
 Important notes for SCORING:
 - Use the FULL 0-100 range for each dimension. Don't default to just a few values.
