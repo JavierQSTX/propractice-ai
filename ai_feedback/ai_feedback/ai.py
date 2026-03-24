@@ -1,7 +1,12 @@
 import asyncio
 import base64
+import time
+import io
+from typing import Any
 
+from faster_whisper import WhisperModel
 import instructor
+from google import genai
 from langfuse import get_client
 from langfuse.openai import AsyncOpenAI
 from loguru import logger
@@ -15,16 +20,21 @@ from ai_feedback.constants.fallback_prompts import (
 )
 from ai_feedback.constants.prompts import (
     AUDIO_ANALYSIS_PROMPT,
+    AUDIO_ANALYSIS_PROMPT_LEGACY,
     TEXT_ANALYSIS_PROMPT,
     EXTRACT_KEYWORDS_PROMPT,
     JUDGE_FEEDBACK_PROMPT,
     SPEECH_ANALYSIS_SKIPPED,
     VIDEO_ANALYSIS_PROMPT,
 )
+from ai_feedback.constants.translations import STYLE_CATEGORY_TITLES
 from ai_feedback.models import (
     ScriptDetails,
     AudioAnalysis,
+    AudioAnalysisLegacy,
     LessonDetailsExtractedKeywords,
+    SupportedLanguage,
+    StyleCategory,
 )
 from ai_feedback.utils import (
     lf,
@@ -32,9 +42,27 @@ from ai_feedback.utils import (
     generate_session_id,
 )
 
-MAX_ITERATIONS = 30        # e.g. ~60 seconds total
-SLEEP_SECONDS = 2
+MAX_ITERATIONS = 60  # e.g. ~60 seconds total
+SLEEP_SECONDS = 1
 
+LANGUAGE_TO_WHISPER_CODE = {
+    "english": "en",
+    "german": "de",
+    "dutch": "nl",
+    "french": "fr",
+    "malay": "ms",
+    "spanish": "es",
+    "polish": "pl",
+}
+
+
+logger.info("Initializing Faster Whisper model...")
+try:
+    whisper_model = WhisperModel("base", device="cpu", compute_type="int8")
+    logger.info("Faster Whisper model loaded successfully.")
+except Exception as e:
+    logger.exception(f"Failed to load Whisper model: {e}")
+    whisper_model = None
 
 langfuse = get_client()
 GoogleGenAIInstrumentor().instrument()
@@ -45,8 +73,16 @@ client = AsyncOpenAI(
 )
 instructor_client = instructor.from_openai(client)
 
-from google import genai
 genai_client = genai.Client(api_key=settings.ai_api_key)
+
+
+async def delete_gemini_file(file_name: str):
+    try:
+        await genai_client.aio.files.delete(name=file_name)
+        logger.info(f"Deleted uploaded file in background: {file_name}")
+    except Exception as e:
+        logger.warning(f"Failed to delete uploaded file in background: {e}")
+
 
 def get_scores_and_matching_keywords(
     keyword_equivalents: LessonDetailsExtractedKeywords,
@@ -74,11 +110,16 @@ def get_scores_and_matching_keywords(
         score = 0
         key_words = []
         for mapping in key_element.keywords_with_equivalents:
+            kw_to_show = (
+                mapping.translated_keyword
+                if mapping.translated_keyword
+                else mapping.keyword
+            )
             if mapping.transcript_equivalent == "None":
-                key_words.append(mapping.keyword)
+                key_words.append(kw_to_show)
             else:
                 score += 1
-                key_words.append(f"**{mapping.keyword}**")
+                key_words.append(f"**{kw_to_show}**")
 
         try:
             scores[key_element.script] = int(100 * score / total)
@@ -90,7 +131,9 @@ def get_scores_and_matching_keywords(
     return scores, matching_keywords
 
 
-async def get_audio_analysis(audio: bytes, session_id: str) -> AudioAnalysis:
+async def get_audio_analysis(
+    audio: bytes, session_id: str, language: str = SupportedLanguage.ENGLISH.value
+) -> AudioAnalysis:
     encoded_string = base64.b64encode(audio).decode("utf-8")
 
     max_words_per_speech_dimension = lf.get_prompt(
@@ -106,7 +149,8 @@ async def get_audio_analysis(audio: bytes, session_id: str) -> AudioAnalysis:
             {
                 "role": "developer",
                 "content": AUDIO_ANALYSIS_PROMPT.format(
-                    max_words_per_speech_dimension=max_words_per_speech_dimension
+                    max_words_per_speech_dimension=max_words_per_speech_dimension,
+                    language=language,
                 ),
             },
             {
@@ -128,15 +172,77 @@ async def get_audio_analysis(audio: bytes, session_id: str) -> AudioAnalysis:
     return audio_analysis
 
 
-async def get_video_analysis(video_filename: str, session_id: str) -> AudioAnalysis:
-    """
-    Analyze video using Gemini 3.0's multimodal capabilities.
-    Uploads video to File API and processes both audio and visual streams.
-    Returns AudioAnalysis structure for compatibility with existing pipeline.
-    """
+async def get_audio_analysis_legacy(
+    audio: bytes,
+    session_id: str,
+    language: str = SupportedLanguage.ENGLISH.value,
+) -> AudioAnalysisLegacy:
+    encoded_string = base64.b64encode(audio).decode("utf-8")
+
+    max_words_per_speech_dimension = lf.get_prompt(
+        "max-words-per-speech-dimension",
+        label="production",
+        fallback=FALLBACK_MAX_WORDS_PER_SPEECH_DIMENSION,
+    ).prompt
+
+    audio_analysis = await instructor_client.chat.completions.create(
+        model=settings.ai_model_name,
+        modalities=["text"],
+        messages=[
+            {
+                "role": "developer",
+                "content": AUDIO_ANALYSIS_PROMPT_LEGACY.format(
+                    max_words_per_speech_dimension=max_words_per_speech_dimension,
+                    language=language,
+                ),
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "input_audio",
+                        "input_audio": {"data": encoded_string, "format": "wav"},
+                    },
+                ],
+            },
+        ],
+        response_model=AudioAnalysisLegacy,
+    )
+
+    if audio_analysis is None:
+        raise RuntimeError("External API call failed: received None")
+
+    return audio_analysis
+
+
+def _transcribe_audio_sync(audio_source: bytes | str, language: str) -> str:
+    if whisper_model is None:
+        raise RuntimeError("Whisper model not initialized")
+
+    # audio_source could be `bytes` (from get_feedback/legacy) or `str` (from get_feedback_from_video file path)
+    if isinstance(audio_source, bytes):
+        audio_input = io.BytesIO(audio_source)
+    else:
+        audio_input = audio_source
+
+    whisper_lang = LANGUAGE_TO_WHISPER_CODE.get(language.lower(), "en")
+    segments, _ = whisper_model.transcribe(audio_input, language=whisper_lang)
+    return " ".join([segment.text for segment in segments])
+
+
+async def get_fast_transcription(
+    audio_source: bytes | str, language: str = SupportedLanguage.ENGLISH.value
+) -> str:
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(
+        None, _transcribe_audio_sync, audio_source, language
+    )
+
+
+async def upload_and_wait_for_file(video_filename: str) -> Any:
     logger.info(f"Uploading video file: {video_filename}")
-    
-    myfile = genai_client.files.upload(file=video_filename)
+
+    myfile = await genai_client.aio.files.upload(file=video_filename)
     logger.info(f"Video uploaded with URI: {myfile.uri}")
 
     for i in range(MAX_ITERATIONS):
@@ -145,48 +251,54 @@ async def get_video_analysis(video_filename: str, session_id: str) -> AudioAnaly
 
         logger.info(f"Waiting for video processing... ({i + 1}/{MAX_ITERATIONS})")
         await asyncio.sleep(SLEEP_SECONDS)
-        myfile = genai_client.files.get(name=myfile.name)
+        myfile = await genai_client.aio.files.get(name=myfile.name)
     else:
         raise TimeoutError("File processing timed out")
-    
+
     if myfile.state.name == "FAILED":
         raise RuntimeError(f"Video processing failed: {myfile.state}")
-    
-    logger.info("Video processing complete, generating analysis...")
-    
+
+    logger.info("Video processing complete.")
+    return myfile
+
+
+async def get_video_analysis(
+    myfile: Any, session_id: str, language: str = SupportedLanguage.ENGLISH.value
+) -> AudioAnalysis:
+    """
+    Analyze video using Gemini 3.0's multimodal capabilities.
+    Processes both audio and visual streams from an already uploaded file.
+    Returns AudioAnalysis structure for compatibility with existing pipeline.
+    """
+    logger.info("Generating video analysis...")
+
     max_words_per_speech_dimension = lf.get_prompt(
         "max-words-per-speech-dimension",
         label="production",
         fallback=FALLBACK_MAX_WORDS_PER_SPEECH_DIMENSION,
     ).prompt
-    
-    response = genai_client.models.generate_content(
+
+    response = await genai_client.aio.models.generate_content(
         model="gemini-3-flash-preview",
         contents=[
             VIDEO_ANALYSIS_PROMPT.format(
-                max_words_per_speech_dimension=max_words_per_speech_dimension
+                max_words_per_speech_dimension=max_words_per_speech_dimension,
+                language=language,
             ),
             myfile,
         ],
         config={
             "response_mime_type": "application/json",
             "response_schema": AudioAnalysis,
-        }
+        },
     )
-    
+
     logger.info(f"Video analysis response: {response}")
-    
+
     if response.parsed is None:
         raise RuntimeError("External API call failed: received None")
-    
-    try:
-        genai_client.files.delete(name=myfile.name)
-        logger.info(f"Deleted uploaded file: {myfile.name}")
-    except Exception as e:
-        logger.warning(f"Failed to delete uploaded file: {e}")
-    
-    return response.parsed
 
+    return response.parsed
 
 
 async def get_text_analysis(
@@ -196,6 +308,7 @@ async def get_text_analysis(
     scores: dict[str, int],
     matching_keywords: dict[str, list[str]],
     session_id: str,
+    language: str = SupportedLanguage.ENGLISH.value,
 ) -> str:
     include_coaching_recommendations = (
         lf.get_prompt(
@@ -212,6 +325,9 @@ async def get_text_analysis(
         f"Include coaching recommendations: <{include_coaching_recommendations}>"
     )
 
+    titles = STYLE_CATEGORY_TITLES.get(
+        language, STYLE_CATEGORY_TITLES[SupportedLanguage.ENGLISH.value]
+    )
     response = await client.chat.completions.create(  # pyright: ignore
         model=settings.ai_model_name,
         modalities=["text"],
@@ -224,6 +340,14 @@ async def get_text_analysis(
                     coaching_column_instructions=prompt_values[
                         "coaching_column_instructions"
                     ],
+                    language=language,
+                    assessment_heading=titles["assessment_heading"],
+                    key_elements_col=titles["key_elements_col"],
+                    recording_matches_col=titles["recording_matches_col"],
+                    score_col=titles["score_col"],
+                    yes=titles["yes"],
+                    partially=titles["partially"],
+                    no=titles["no"],
                 ),
             },
             {
@@ -250,20 +374,24 @@ async def get_text_analysis(
 
 
 async def get_keyword_equivalents(
-    *, transcript: str, script_details: ScriptDetails, session_id: str
+    *,
+    transcript: str,
+    script_details: ScriptDetails,
+    session_id: str,
+    language: str = SupportedLanguage.ENGLISH.value,
 ) -> LessonDetailsExtractedKeywords:
 
     logger.info(f"Before calling instructor_client")
-    keyword_equivalents = genai_client.models.generate_content(
+    keyword_equivalents = await genai_client.aio.models.generate_content(
         model=settings.ai_model_name,
         contents=[
-            EXTRACT_KEYWORDS_PROMPT,
-            f"<transcript>{transcript}</transcript>\n\n <lesson_details>{script_details}</lesson_details>"
+            EXTRACT_KEYWORDS_PROMPT.format(language=language),
+            f"<transcript>{transcript}</transcript>\n\n <lesson_details>{script_details}</lesson_details>",
         ],
         config={
             "response_mime_type": "application/json",
             "response_schema": LessonDetailsExtractedKeywords,
-        }
+        },
     )
     # log keyword_equivalents
     logger.info(f"Keyword equivalents: {keyword_equivalents}")
@@ -272,6 +400,41 @@ async def get_keyword_equivalents(
         raise RuntimeError("External API call failed: received None")
 
     return keyword_equivalents.parsed
+
+
+async def process_text_feedback(
+    transcript, script_details, session_id, language, timing_logs
+):
+    t0_kw = time.time()
+    kw_eq = await get_keyword_equivalents(
+        transcript=transcript,
+        script_details=script_details,
+        session_id=session_id,
+        language=language,
+    )
+    timing_logs.append(f"get_keyword_equivalents: {time.time() - t0_kw:.2f}s")
+
+    logger.info(f"Keyword equivalents: {kw_eq}")
+    scores, matching_keywords = get_scores_and_matching_keywords(kw_eq)
+    logger.info(f"Scores: {scores}")
+    logger.info(f"Matched keywords: {matching_keywords}")
+
+    try:
+        average_score = int(sum(scores.values()) / len(scores))
+    except ZeroDivisionError:
+        average_score = 0
+
+    t0_text = time.time()
+    txt_analysis = await get_text_analysis(
+        transcript=transcript,
+        script_details=script_details,
+        scores=scores,
+        matching_keywords=matching_keywords,
+        session_id=session_id,
+        language=language,
+    )
+    timing_logs.append(f"get_text_analysis: {time.time() - t0_text:.2f}s")
+    return kw_eq, txt_analysis, average_score, timing_logs
 
 
 async def judge_feedback(
@@ -298,64 +461,230 @@ async def judge_feedback(
     return judged_feedback
 
 
+async def run_audio_pipeline(
+    audio: bytes, session_id: str, language: str, timing_logs: list[str]
+) -> AudioAnalysis:
+    t0_aa = time.time()
+    analysis = await get_audio_analysis(audio, session_id, language)
+    timing_logs.append(f"get_audio_analysis: {time.time() - t0_aa:.2f}s")
+    return analysis
+
+
+async def run_audio_pipeline_legacy(
+    audio: bytes, session_id: str, language: str, timing_logs: list[str]
+) -> AudioAnalysisLegacy:
+    t0_aa = time.time()
+    analysis = await get_audio_analysis_legacy(audio, session_id, language)
+    timing_logs.append(f"get_audio_analysis_legacy: {time.time() - t0_aa:.2f}s")
+    return analysis
+
+
+async def run_video_pipeline(
+    video_filename: str, session_id: str, language: str, timing_logs: list[str]
+) -> tuple[Any, AudioAnalysis]:
+    t0_up = time.time()
+    mfile = await upload_and_wait_for_file(video_filename)
+    timing_logs.append(f"upload_and_wait_for_file: {time.time() - t0_up:.2f}s")
+    t0_va = time.time()
+    analysis = await get_video_analysis(mfile, session_id, language)
+    timing_logs.append(f"get_video_analysis: {time.time() - t0_va:.2f}s")
+    return mfile, analysis
+
+
+async def run_text_pipeline(
+    audio_source: bytes | str,
+    script_details: ScriptDetails,
+    session_id: str,
+    language: str,
+    timing_logs: list[str],
+):
+    t0_tr = time.time()
+    trscrpt = await get_fast_transcription(audio_source, language)
+    timing_logs.append(f"get_fast_transcription: {time.time() - t0_tr:.2f}s")
+    return await process_text_feedback(
+        trscrpt, script_details, session_id, language, timing_logs
+    )
+
+
 async def get_feedback(
     *,
     audio_filename: str,
     script_details: ScriptDetails,
     user_id: str | None,
     tags: list[str] | None,
-) -> tuple[str, int, int, str]:
+    language: str = SupportedLanguage.ENGLISH.value,
+) -> dict[str, Any]:
+    start_time = time.time()
+    timing_logs = []
     session_id = generate_session_id()
     logger.info(f"Lesson details: {script_details}")
 
     audio = read_audio(audio_filename)
-    audio_analysis = await get_audio_analysis(audio, session_id)
 
-    keyword_equivalents = await get_keyword_equivalents(
-        transcript=audio_analysis.transcript,
-        script_details=script_details,
-        session_id=session_id,
+    t0_gather = time.time()
+    audio_analysis, text_res = await asyncio.gather(
+        run_audio_pipeline(audio, session_id, language, timing_logs),
+        run_text_pipeline(audio, script_details, session_id, language, timing_logs),
     )
-    logger.info(f"Keyword equivalents: {keyword_equivalents}")
-    scores, matching_keywords = get_scores_and_matching_keywords(keyword_equivalents)
-    logger.info(f"Scores: {scores}")
-    logger.info(f"Matched keywords: {matching_keywords}")
-
-    try:
-        average_score = int(sum(scores.values()) / len(scores))
-    except ZeroDivisionError:
-        average_score = 0
-
-    text_analysis = await get_text_analysis(
-        transcript=audio_analysis.transcript,
-        script_details=script_details,
-        scores=scores,
-        matching_keywords=matching_keywords,
-        session_id=session_id,
+    timing_logs.append(
+        f"full_parallel_pipelines_gather: {time.time() - t0_gather:.2f}s"
     )
+
+    keyword_equivalents, text_analysis, average_score, timing_logs = text_res
+
+    titles = STYLE_CATEGORY_TITLES.get(
+        language, STYLE_CATEGORY_TITLES[SupportedLanguage.ENGLISH.value]
+    )
+    final_feedback = f"{text_analysis}{titles['bolded_keywords']}\n\n"
+
+    # Concatenate style assessments into final_feedback
+    if not keyword_equivalents.transcript_matches_lesson:
+        titles = STYLE_CATEGORY_TITLES.get(
+            language, STYLE_CATEGORY_TITLES[SupportedLanguage.ENGLISH.value]
+        )
+        final_feedback += f"## {titles['heading']}\n\n{SPEECH_ANALYSIS_SKIPPED}"
+        skipped_category = StyleCategory(assessment=SPEECH_ANALYSIS_SKIPPED, score=0)
+
+        timing_logs.append(f"Total time: {time.time() - start_time:.2f}s")
+        logger.info(f"Performance [get_feedback]: {' | '.join(timing_logs)}")
+
+        return {
+            "feedback": final_feedback,
+            "accuracy": average_score,
+            "confidence": 0,
+            "session_id": session_id,
+            "rhythm_and_timing": skipped_category,
+            "volume_and_tone": skipped_category,
+            "emotional_authenticity": skipped_category,
+            "confidence_detail": skipped_category,
+        }
+
+    titles = STYLE_CATEGORY_TITLES.get(
+        language, STYLE_CATEGORY_TITLES[SupportedLanguage.ENGLISH.value]
+    )
+    final_feedback += (
+        f"## {titles['heading']}\n\n"
+        f"* {titles['rhythm_and_timing']}: {audio_analysis.rhythm_and_timing.assessment}\n"
+        f"* {titles['volume_and_tone']}: {audio_analysis.volume_and_tone.assessment}\n"
+        f"* {titles['emotional_authenticity']}: {audio_analysis.emotional_authenticity.assessment}\n"
+        f"* {titles['confidence']}: {audio_analysis.confidence.assessment}"
+    )
+
+    # Normal case: return full structured data
+    confidence_score = int(
+        (
+            audio_analysis.rhythm_and_timing.score
+            + audio_analysis.volume_and_tone.score
+            + audio_analysis.emotional_authenticity.score
+            + audio_analysis.confidence.score
+        )
+        / 4
+    )
+
+    timing_logs.append(f"Total time: {time.time() - start_time:.2f}s")
+    logger.info(f"Performance [get_feedback]: {' | '.join(timing_logs)}")
+
+    return {
+        "feedback": final_feedback,
+        "accuracy": average_score,
+        "confidence": confidence_score,
+        "session_id": session_id,
+        "rhythm_and_timing": audio_analysis.rhythm_and_timing,
+        "volume_and_tone": audio_analysis.volume_and_tone,
+        "emotional_authenticity": audio_analysis.emotional_authenticity,
+        "confidence_detail": audio_analysis.confidence,
+    }
+
+
+async def get_feedback_legacy(
+    *,
+    audio_filename: str,
+    script_details: ScriptDetails,
+    user_id: str | None,
+    tags: list[str] | None,
+    language: str = SupportedLanguage.ENGLISH.value,
+) -> dict[str, Any]:
+    start_time = time.time()
+    timing_logs = []
+    session_id = generate_session_id()
+    logger.info(f"Lesson details: {script_details}")
+
+    audio = read_audio(audio_filename)
+
+    t0_gather = time.time()
+    audio_analysis, text_res = await asyncio.gather(
+        run_audio_pipeline_legacy(audio, session_id, language, timing_logs),
+        run_text_pipeline(audio, script_details, session_id, language, timing_logs),
+    )
+    timing_logs.append(
+        f"full_parallel_pipelines_gather: {time.time() - t0_gather:.2f}s"
+    )
+
+    keyword_equivalents, text_analysis, average_score, timing_logs = text_res
+
     speech_analysis = (
         SPEECH_ANALYSIS_SKIPPED
         if not keyword_equivalents.transcript_matches_lesson
         else audio_analysis.speaking_style_analysis
     )
 
+    titles = STYLE_CATEGORY_TITLES.get(
+        language, STYLE_CATEGORY_TITLES[SupportedLanguage.ENGLISH.value]
+    )
     final_feedback = (
-        f"{text_analysis}*only bolded keywords are mentioned during the recording\n\n"
-        f"## Style Coaching Recommendations\n\n{speech_analysis}"
+        f"{text_analysis}{titles['bolded_keywords']}\n\n"
+        f"## {titles['heading']}\n\n{speech_analysis}"
     )
 
     confidence_score = (
         0
         if not keyword_equivalents.transcript_matches_lesson
+        else int(
+            (
+                audio_analysis.rhythm_timing_score
+                + audio_analysis.volume_tone_score
+                + audio_analysis.emotional_authenticity_score
+                + audio_analysis.confidence_score
+            )
+            / 4
+        )
+    )
+
+    # Individual dimension scores (0 if transcript doesn't match lesson)
+    rhythm_timing = (
+        0
+        if not keyword_equivalents.transcript_matches_lesson
+        else audio_analysis.rhythm_timing_score
+    )
+    volume_tone = (
+        0
+        if not keyword_equivalents.transcript_matches_lesson
+        else audio_analysis.volume_tone_score
+    )
+    emotional_authenticity = (
+        0
+        if not keyword_equivalents.transcript_matches_lesson
+        else audio_analysis.emotional_authenticity_score
+    )
+    confidence_detail = (
+        0
+        if not keyword_equivalents.transcript_matches_lesson
         else audio_analysis.confidence_score
     )
 
-    return (
-        final_feedback,
-        average_score,
-        confidence_score,
-        session_id,
-    )
+    timing_logs.append(f"Total time: {time.time() - start_time:.2f}s")
+    logger.info(f"Performance [get_feedback_legacy]: {' | '.join(timing_logs)}")
+
+    return {
+        "feedback": final_feedback,
+        "accuracy": average_score,
+        "confidence": confidence_score,
+        "session_id": session_id,
+        "rhythm_timing_score": rhythm_timing,
+        "volume_tone_score": volume_tone,
+        "emotional_authenticity_score": emotional_authenticity,
+        "confidence_detail_score": confidence_detail,
+    }
 
 
 async def get_feedback_from_video(
@@ -364,66 +693,98 @@ async def get_feedback_from_video(
     script_details: ScriptDetails,
     user_id: str | None,
     tags: list[str] | None,
-) -> tuple[str, int, int, str]:
+    language: str = SupportedLanguage.ENGLISH.value,
+) -> dict[str, Any]:
     """
     Generate feedback from video using Gemini's multimodal capabilities.
     This function processes video directly without converting to audio first.
     """
+    start_time = time.time()
+    timing_logs = []
     session_id = generate_session_id()
     logger.info(f"Lesson details: {script_details}")
     logger.info(f"Processing video file: {video_filename}")
 
-    # Analyze video using multimodal model
-    video_analysis = await get_video_analysis(video_filename, session_id)
-
-    # Run keyword extraction and text analysis concurrently for better performance
-    keyword_equivalents_task = get_keyword_equivalents(
-        transcript=video_analysis.transcript,
-        script_details=script_details,
-        session_id=session_id,
+    t0_gather = time.time()
+    video_res, text_res = await asyncio.gather(
+        run_video_pipeline(video_filename, session_id, language, timing_logs),
+        run_text_pipeline(
+            video_filename, script_details, session_id, language, timing_logs
+        ),
     )
-    
-    # We need keyword_equivalents to compute scores before text_analysis
-    keyword_equivalents = await keyword_equivalents_task
-    logger.info(f"Keyword equivalents: {keyword_equivalents}")
-    scores, matching_keywords = get_scores_and_matching_keywords(keyword_equivalents)
-    logger.info(f"Scores: {scores}")
-    logger.info(f"Matched keywords: {matching_keywords}")
-
-    try:
-        average_score = int(sum(scores.values()) / len(scores))
-    except ZeroDivisionError:
-        average_score = 0
-
-    # Text analysis can now run with the computed scores
-    text_analysis = await get_text_analysis(
-        transcript=video_analysis.transcript,
-        script_details=script_details,
-        scores=scores,
-        matching_keywords=matching_keywords,
-        session_id=session_id,
-    )
-    speech_analysis = (
-        SPEECH_ANALYSIS_SKIPPED
-        if not keyword_equivalents.transcript_matches_lesson
-        else video_analysis.speaking_style_analysis
+    timing_logs.append(
+        f"full_parallel_pipelines_gather: {time.time() - t0_gather:.2f}s"
     )
 
-    final_feedback = (
-        f"{text_analysis}*only bolded keywords are mentioned during the recording\\n\\n"
-        f"## Style Coaching Recommendations\\n\\n{speech_analysis}"
+    myfile, video_analysis = video_res
+    keyword_equivalents, text_analysis, average_score, timing_logs = text_res
+
+    asyncio.create_task(delete_gemini_file(myfile.name))
+
+    titles = STYLE_CATEGORY_TITLES.get(
+        language, STYLE_CATEGORY_TITLES[SupportedLanguage.ENGLISH.value]
+    )
+    final_feedback = f"{text_analysis}{titles['bolded_keywords']}\n\n"
+
+    # Concatenate style assessments into final_feedback
+    if not keyword_equivalents.transcript_matches_lesson:
+        titles = STYLE_CATEGORY_TITLES.get(
+            language, STYLE_CATEGORY_TITLES[SupportedLanguage.ENGLISH.value]
+        )
+        final_feedback += f"## {titles['heading']}\n\n{SPEECH_ANALYSIS_SKIPPED}"
+        skipped_category = StyleCategory(assessment=SPEECH_ANALYSIS_SKIPPED, score=0)
+
+        timing_logs.append(f"Total time: {time.time() - start_time:.2f}s")
+        logger.info(f"Performance [get_feedback_from_video]: {' | '.join(timing_logs)}")
+
+        return {
+            "feedback": final_feedback,
+            "accuracy": average_score,
+            "confidence": 0,
+            "session_id": session_id,
+            "rhythm_and_timing": skipped_category,
+            "volume_and_tone": skipped_category,
+            "emotional_authenticity": skipped_category,
+            "confidence_detail": skipped_category,
+            "visual_presence": skipped_category,
+            "ultimate_feedback": skipped_category,
+        }
+
+    titles = STYLE_CATEGORY_TITLES.get(
+        language, STYLE_CATEGORY_TITLES[SupportedLanguage.ENGLISH.value]
+    )
+    final_feedback += (
+        f"## {titles['heading']}\n\n"
+        f"* {titles['rhythm_and_timing']}: {video_analysis.rhythm_and_timing.assessment}\n"
+        f"* {titles['volume_and_tone']}: {video_analysis.volume_and_tone.assessment}\n"
+        f"* {titles['emotional_authenticity']}: {video_analysis.emotional_authenticity.assessment}\n"
+        f"* {titles['confidence']}: {video_analysis.confidence.assessment}\n\n"
+        f"## {titles['ultimate_feedback']}\n\n"
+        f"{video_analysis.ultimate_feedback.assessment if video_analysis.ultimate_feedback else ''}"
     )
 
-    confidence_score = (
-        0
-        if not keyword_equivalents.transcript_matches_lesson
-        else video_analysis.confidence_score
+    # Normal case: return full structured data
+    confidence_score = int(
+        (
+            video_analysis.rhythm_and_timing.score
+            + video_analysis.volume_and_tone.score
+            + video_analysis.emotional_authenticity.score
+            + video_analysis.confidence.score
+        )
+        / 4
     )
 
-    return (
-        final_feedback,
-        average_score,
-        confidence_score,
-        session_id,
-    )
+    timing_logs.append(f"Total time: {time.time() - start_time:.2f}s")
+    logger.info(f"Performance [get_feedback_from_video]: {' | '.join(timing_logs)}")
 
+    return {
+        "feedback": final_feedback,
+        "accuracy": average_score,
+        "confidence": confidence_score,
+        "session_id": session_id,
+        "rhythm_and_timing": video_analysis.rhythm_and_timing,
+        "volume_and_tone": video_analysis.volume_and_tone,
+        "emotional_authenticity": video_analysis.emotional_authenticity,
+        "confidence_detail": video_analysis.confidence,
+        "ultimate_feedback": video_analysis.ultimate_feedback,
+    }

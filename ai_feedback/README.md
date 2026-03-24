@@ -13,6 +13,7 @@ A FastAPI-based service that provides AI-powered feedback analysis for video pre
 - [Usage](#usage)
 - [API Endpoints](#api-endpoints)
 - [Project Structure](#project-structure)
+- [Evaluation Pipeline & CI/CD](#evaluation-pipeline--cicd)
 - [Development](#development)
 - [Deployment](#deployment)
 - [Monitoring and Analytics](#monitoring-and-analytics)
@@ -46,7 +47,7 @@ This service is designed to evaluate video presentations against predefined scri
 ### AI Models
 
 The service uses Google's Gemini models:
-- Primary model: `gemini-2.0-flash`
+- Primary model: `gemini-3.1-flash-lite-preview`
 - Supports both OpenAI-compatible API and native Google GenAI SDK
 
 ## Architecture
@@ -388,11 +389,23 @@ ai_feedback/
 │       ├── prompts.py          # Main AI prompts
 │       ├── conditional_prompts.py  # Conditional prompt logic
 │       └── fallback_prompts.py     # Fallback prompts
+├── evaluation/                 # Evaluation pipeline for feedback quality
+│   ├── evaluation_config.py    # Evaluation configuration
+│   ├── extractor.py            # Extract style coaching from feedback
+│   ├── similarity.py           # Semantic similarity calculation
+│   ├── evaluator.py            # Main evaluation orchestrator
+│   ├── api_client.py           # Feedback API client
+│   ├── run_evaluation.py       # CLI script to run evaluations
+│   ├── README.md               # Evaluation documentation
+│   └── LANGFUSE_GUIDE.md       # Langfuse integration guide
 ├── scripts/                    # Utility scripts
 │   ├── send_request.py         # Test script for API requests
 │   ├── deploy.sh               # Production deployment script
 │   └── deploy-dev.sh           # Development deployment script
 ├── data/                       # Test data and sample videos
+│   ├── sets/                   # Test video sets
+│   ├── challenges/             # Challenge payloads
+│   └── answers/                # Reference answers for evaluation
 ├── Dockerfile                  # Docker container definition
 ├── Makefile                    # Build and deployment commands
 ├── pyproject.toml              # Poetry dependencies and project metadata
@@ -447,6 +460,74 @@ JWT-based authentication:
 - Token creation and validation
 - Password verification
 - Token dependency for protected endpoints
+
+## Evaluation Pipeline & CI/CD
+
+The project includes a comprehensive evaluation system that measures AI feedback quality by comparing generated style coaching against reference answers using semantic similarity.
+
+**⚠️ CRITICAL: Changes should NOT be merged if the evaluation pipeline performance drops compared to the baseline.**
+
+### Automated CI/CD
+
+The evaluation pipeline runs automatically on each Pull Request via `.github/workflows/evaluation.yml`. This ensures that any changes to prompts, models, or processing logic do not negatively impact the quality of the feedback.
+
+![GitHub Evaluation Report](data/docs/github-evaluation.jpg)
+
+> [!NOTE]
+> Evaluations are skipped for **draft Pull Requests** to save API quota. Mark the PR as **"Ready for Review"** to trigger the pipeline.
+
+| Trigger | Experiment name | Result reported as |
+|---|---|---|
+| Pull request → `dev`/`main` | `pr-<number>` | Sticky PR comment with scores |
+| Merge to `main` | `main` | GitHub Actions job summary |
+| Merge to `dev` | `dev` | GitHub Actions job summary |
+| Manual dispatch | custom / `manual-<run>` | GitHub Actions job summary |
+
+### Metrics and Judgment
+
+The evaluation calculates a **Semantic Similarity Score (0.0 to 1.0)** for each feedback category by comparing the AI-generated coaching to a golden reference.
+
+*   **1.0 (Perfect Match):** The generated feedback carries the exact same semantic meaning and actionable advice as the reference.
+*   **0.8 - 0.99 (Strong Match):** The feedback is highly similar, capturing the core advice with slightly different phrasing.
+*   **< 0.8 (Requires Review):** The feedback has drifted from the desired coaching style or missed key points.
+
+**How to Judge:** When reviewing a PR, inspect the Evaluation results. If the overall similarity score drops or specific categories show declines, the changes must be investigated and refined before merging.
+
+### Monitoring on Langfuse
+
+While GitHub provides the high-level summary, the evaluation runs can be monitored closely inside [Langfuse](https://us.cloud.langfuse.com/project/cm98nhha900uuad07kqw6bgx5/datasets/cmm0u6ygu01i0ad07vxoxam6b).
+
+![Langfuse Evaluation Tracking](data/docs/langfuse.jpg)
+
+#### Required GitHub Secrets
+
+Add these in **Repository → Settings → Secrets and variables → Actions**:
+
+| Secret | Description |
+|---|---|
+| `AI_API_KEY` | Google AI API key (Gemini + embeddings) |
+| `LANGFUSE_SECRET_KEY` | Langfuse secret key |
+| `LANGFUSE_PUBLIC_KEY` | Langfuse public key |
+| `LANGFUSE_HOST` | Langfuse host URL (e.g. `https://us.cloud.langfuse.com`) |
+
+### Quick start (local)
+
+```bash
+# Run evaluation on all test sets
+make evaluate
+
+# Run with custom experiment name
+make evaluate-experiment NAME=prompt_v2
+
+# Run on a specific set
+make evaluate-set SET=set_1 EXP=baseline
+```
+
+### Langfuse — where to find results
+
+All results are stored in **Datasets → `ai_feedback_eval` → Runs** — one row per example, one column per experiment. Each trace also captures the full prompt and a stable `pipeline_run` timestamp tag so you can always trace which exact prompt produced which score.
+
+See [evaluation/README.md](evaluation/README.md) for full setup, Langfuse navigation guide, and prompt-tuning workflow.
 
 ## Development
 
