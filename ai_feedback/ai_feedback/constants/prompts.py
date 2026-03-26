@@ -160,6 +160,7 @@ Ultimate Feedback Behavior Examples:
 - Tension or stiffness: "You appeared somewhat tense in this response. Relaxing your shoulders and settling into a calmer posture will help you come across as more comfortable and confident."
 - Camera covered or turned off: "You were not clearly visible in this response. Try to remain in frame so it feels like you are speaking directly to the other person."
 - Only top of head visible while reading: "Your eyes were not clearly visible throughout this response. Try to keep them more in view so you appear more present, engaged, and connected."
+- Reading from a script: "You frequently looked away or down as if reading from a script. Try to keep your eyes centered on the camera to build trust and connection as if the other person were directly present."
 
 Important notes for SCORING:
 - Use the FULL 0-100 range for each dimension. Don't default to just a few values.
