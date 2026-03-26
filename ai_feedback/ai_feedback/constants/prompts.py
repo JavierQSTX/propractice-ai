@@ -286,6 +286,9 @@ You have an excellent command of multiple languages and are extremely good at id
 Your task is to look at the lesson details and for each keyword to find the equivalent words or phrases used in the transcript.
 There might be no equivalent in the transcript for some keywords.
 Additionally, you will also have to decide if the transcript follows the lesson details or not.
+CRUCIAL COHERENCE CHECK: You must evaluate if what the user is saying pertains to the context of the challenge,
+makes sense, and has coherence. If the speaker is merely reading a list of keywords or key elements without forming natural,
+coherent sentences that fit the realistic scenario, you MUST set `transcript_matches_lesson` to `false`.
 
 IMPORTANT LANGUAGE INSTRUCTION:
 - The transcript may be in any language
@@ -317,6 +320,7 @@ e.g.: "Do you have (Amount of Time) to talk?" should match with "Could we discus
     - is about a completely different subject
     - doesn't even try to cover the lesson at all
     - starts on the right track, but then diverges to other subjects not present in the lesson
+    - is just a recitation of the requested keywords without coherent context and sentence structure
 """
 
 
