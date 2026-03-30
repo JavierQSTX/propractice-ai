@@ -57,6 +57,7 @@ Important notes for SCORING:
 
 Important notes for STYLE ANALYSIS:
 - Do not refer to the audio or the student, just to the quality and assessment of the recording.
+- Use the specific term if it exists in the script. If the script clearly says client, customer, member, patient, viewer, or prospect, use that term. If no label is found, default to "the other person".
 - Make each 'assessment' concise, enthusiastic and concrete (max {max_words_per_speech_dimension} words).
 - CRITICAL: Make your recommendations SPECIFIC and VARIED to avoid repetition:
   * Structure feedback as: [Positive reinforcement / Current State] followed by [Specific actionable advice].
@@ -149,14 +150,17 @@ Ultimate Feedback Instructions:
     * Sound like a human coach, not a system alert.
 
 Ultimate Feedback Behavior Examples:
-- Wandering eyesight: "Your eyes moved away from the camera at times. Try to keep your focus centered as if the client were directly in front of you."
-- Looking down too often: "You looked down frequently. Keep your eyes up more consistently to strengthen connection."
-- Limited facial engagement: "Your expression stayed fairly neutral. Add a little more natural expression to show engagement."
-- Distracted body language: "Your body language suggested some distraction. Stay centered and present as if you were in a live client conversation."
-- Poor posture: "Your posture relaxed at times. Sit upright to project more confidence and professionalism."
-- Excessive movement: "You moved frequently during your response. Keep your posture steadier so the focus stays on your message."
-- Low visual energy: "Your visual presence appeared low in energy. Show a little more alertness and engagement."
-- Tension or stiffness: "You appeared somewhat tense. Relax your shoulders and keep a calm, confident presence."
+- Wandering eyesight: "Your eye contact drifted at times. Try to keep your focus more centered so you appear more present and connected, as if the other person were right in front of you."
+- Looking down too often: "You looked down often during this response. Keeping your eyes up more consistently will help you come across as more confident, engaged, and connected."
+- Limited facial engagement: "Your expression stayed fairly neutral throughout. Adding a little more natural expression can help you seem more engaged, approachable, and genuine."
+- Distracted body language: "Your body language suggested some distraction. Try to stay more centered and fully present so the interaction feels more focused and intentional."
+- Poor posture: "Your posture dropped at times during the response. Sitting a little more upright will help you project greater confidence, attentiveness, and professionalism."
+- Excessive movement: "There was quite a bit of movement during your response. A steadier posture will help keep the focus on your message and make your delivery feel more composed."
+- Low visual energy: "Your visual energy appeared a bit low in this response. Bringing a little more alertness and facial engagement will help you appear more interested, confident, and ready to help."
+- Tension or stiffness: "You appeared somewhat tense in this response. Relaxing your shoulders and settling into a calmer posture will help you come across as more comfortable and confident."
+- Camera covered or turned off: "You were not clearly visible in this response. Try to remain in frame so it feels like you are speaking directly to the other person."
+- Only top of head visible while reading: "Your eyes were not clearly visible throughout this response. Try to keep them more in view so you appear more present, engaged, and connected."
+- Reading from a script: "You frequently looked away or down as if reading from a script. Try to keep your eyes centered on the camera to build trust and connection as if the other person were directly present."
 
 Important notes for SCORING:
 - Use the FULL 0-100 range for each dimension. Don't default to just a few values.
@@ -166,6 +170,7 @@ Important notes for SCORING:
 Important notes for STYLE ANALYSIS:
 - Analyze BOTH the audio (voice quality, tone, pacing) AND visual elements (body language, facial expressions, gestures, posture)
 - Do not refer to the video or the student, just to the quality and assessment of the recording
+- Use the specific term if it exists in the script. If the script clearly says client, customer, member, patient, viewer, or prospect, use that term. If no label is found, default to "the other person".
 - Make each 'assessment' concise, enthusiastic and concrete (max {max_words_per_speech_dimension} words).
 - CRITICAL: Make your recommendations SPECIFIC and VARIED to avoid repetition:
   * Structure feedback as: [Positive reinforcement / Current State] followed by [Specific actionable advice].
@@ -286,6 +291,9 @@ You have an excellent command of multiple languages and are extremely good at id
 Your task is to look at the lesson details and for each keyword to find the equivalent words or phrases used in the transcript.
 There might be no equivalent in the transcript for some keywords.
 Additionally, you will also have to decide if the transcript follows the lesson details or not.
+CRUCIAL COHERENCE CHECK: You must evaluate if what the user is saying pertains to the context of the challenge,
+makes sense, and has coherence. If the speaker is merely reading a list of keywords or key elements without forming natural,
+coherent sentences that fit the realistic scenario, you MUST set `transcript_matches_lesson` to `false`.
 
 IMPORTANT LANGUAGE INSTRUCTION:
 - The transcript may be in any language
@@ -293,6 +301,8 @@ IMPORTANT LANGUAGE INSTRUCTION:
 - You MUST translate each lesson details keyword into {language} and supply it in the `translated_keyword` field.
 - Find semantic equivalents even if the transcript is in a different language than the keywords
 - For example, if keyword is "understand" in English and transcript says "comprender" in Spanish, that's a match
+- CRITICAL RULE FOR NUMBERS: If a keyword contains a specific number, time, or quantitative amount (e.g. "20 Minutes", "50 dollars", "$100"),
+you MUST NOT accept a different number as a synonym. "35 Minutes" is NOT a semantic equivalent to "20 Minutes". Only accept the exact or mathematically equivalent amount.
 
 I have provided some lesson details and a transcript.
 
@@ -317,6 +327,7 @@ e.g.: "Do you have (Amount of Time) to talk?" should match with "Could we discus
     - is about a completely different subject
     - doesn't even try to cover the lesson at all
     - starts on the right track, but then diverges to other subjects not present in the lesson
+    - is just a recitation of the requested keywords without coherent context and sentence structure
 """
 
 
