@@ -87,17 +87,6 @@ async def delete_gemini_file(file_name: str):
 def get_scores_and_matching_keywords(
     keyword_equivalents: LessonDetailsExtractedKeywords,
 ) -> tuple[dict[str, int], dict[str, list[str]]]:
-    if not keyword_equivalents.transcript_matches_lesson:
-        return (
-            {key_element.script: 0 for key_element in keyword_equivalents.scripts},
-            {
-                key_element.script: [
-                    kw.keyword for kw in key_element.keywords_with_equivalents
-                ]
-                for key_element in keyword_equivalents.scripts
-            },
-        )
-
     scores = {}
     matching_keywords = {}
     for key_element in keyword_equivalents.scripts:
@@ -127,6 +116,11 @@ def get_scores_and_matching_keywords(
             scores[key_element.script] = 0
 
         matching_keywords[key_element.script] = key_words
+
+    # If transcript doesn't match lesson, override scores to 0 but keep the matching keywords for display
+    if not keyword_equivalents.transcript_matches_lesson:
+        logger.info("Transcript doesn't match lesson - setting all scores to 0")
+        scores = {script: 0 for script in scores.keys()}
 
     return scores, matching_keywords
 
