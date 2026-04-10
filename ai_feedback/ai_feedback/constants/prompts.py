@@ -292,7 +292,8 @@ Your task is to look at the lesson details and for each keyword to find the equi
 There might be no equivalent in the transcript for some keywords.
 Additionally, you will also have to decide if the transcript follows the lesson details or not.
 CRUCIAL COHERENCE CHECK: You must evaluate if what the user is saying pertains to the context of the challenge,
-makes sense, and has coherence.
+makes sense, and has coherence. If the speaker is merely reading a list of keywords or key elements without forming natural,
+coherent sentences that fit the realistic scenario, you MUST set `transcript_matches_lesson` to `true`.
 
 IMPORTANT LANGUAGE INSTRUCTION:
 - The transcript may be in any language
