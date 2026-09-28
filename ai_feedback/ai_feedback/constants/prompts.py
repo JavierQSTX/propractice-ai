@@ -214,7 +214,8 @@ IMPORTANT LANGUAGE INSTRUCTION:
 I have provided some lesson details a transcript and key elements scores.
 
 The lesson details json contains the following fields:
-- "question" - The question that should be answered in the audio answer
+- "question" - What the other person in the scenario says right before the student speaks. It is context only:
+the key elements, not the question, define what the answer must cover.
 - "briefing" - The description of the educational module the student is taking part in.
 It outlines what the scenario will be about, core concepts, and what skills the student
 should have developed the end.
@@ -292,8 +293,12 @@ Your task is to look at the lesson details and for each keyword to find the equi
 There might be no equivalent in the transcript for some keywords.
 Additionally, you will also have to decide if the transcript follows the lesson details or not.
 CRUCIAL COHERENCE CHECK: You must evaluate if what the user is saying pertains to the context of the challenge,
-makes sense, and has coherence. If the speaker is merely reading a list of keywords or key elements without forming natural,
+makes sense, and has coherence. The key elements define the expected answer: a transcript that delivers the
+key element scripts as natural, coherent sentences matches the lesson, even when it follows the script word for word.
+If the speaker is merely reading a list of keywords or disconnected fragments without forming natural,
 coherent sentences that fit the realistic scenario, you MUST set `transcript_matches_lesson` to `false`.
+The "question" is only context (what the other person said right before); NEVER set `transcript_matches_lesson`
+to `false` just because the transcript does not directly answer the question.
 
 IMPORTANT LANGUAGE INSTRUCTION:
 - The transcript may be in any language
@@ -307,7 +312,8 @@ you MUST NOT accept a different number as a synonym. "35 Minutes" is NOT a seman
 I have provided some lesson details and a transcript.
 
 The lesson details json contains the following fields:
-- "question" - The question that should be answered in the audio answer
+- "question" - What the other person in the scenario says right before the student speaks. It is context only:
+the key elements, not the question, define what the answer must cover.
 - "briefing" - The description of the educational module the student is taking part in.
 It outlines what the scenario will be about, core concepts, and what skills the student
 should have developed the end.
