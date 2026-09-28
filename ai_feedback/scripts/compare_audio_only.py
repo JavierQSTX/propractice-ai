@@ -1,12 +1,14 @@
 """Compare /feedback_audio scores on full recordings vs audio-only copies.
 
-The audio-only copies mimic what lcmx-module's sidecar recorder uploads:
-Opus in WebM at 32 kbps (Chrome/Firefox/Edge) and AAC in MP4 at 64 kbps
-(Safari). AAC at 32 kbps moved scores on set_1/1 and set_3, so it runs at 64.
+The audio-only copies mimic what lcmx-module's sidecar recorder could upload:
+Opus in WebM at 32 kbps (what it ships) and AAC in MP4 at 64 kbps (Safari).
+AAC moved /feedback (--legacy) confidence on set_1/3 by about -20 in two runs,
+so the sidecar is Opus-only; the AAC variant stays here for re-evaluation.
 Each file goes through the same ffmpeg → mp3 step and pipeline as production.
 
 Run from ai_feedback/ (needs ffmpeg and .env):
     poetry run python -m scripts.compare_audio_only set_1 set_5
+    poetry run python -m scripts.compare_audio_only --legacy set_1   # /feedback (V1) pipeline
 """
 
 import asyncio
@@ -20,7 +22,7 @@ from dotenv import load_dotenv
 
 load_dotenv(".env")
 
-from ai_feedback.ai import get_feedback  # noqa: E402
+from ai_feedback.ai import get_feedback, get_feedback_legacy  # noqa: E402
 from ai_feedback.models import ScriptDetails, SupportedLanguage  # noqa: E402
 from ai_feedback.utils import convert_video_to_audio  # noqa: E402
 
@@ -43,10 +45,10 @@ def make_audio_only(src: Path, out_dir: Path, variant: str) -> Path:
     return dst
 
 
-async def score(media: Path, payload: dict) -> tuple[int, int]:
+async def score(media: Path, payload: dict, pipeline=get_feedback) -> tuple[int, int]:
     mp3 = convert_video_to_audio(str(media))
     try:
-        result = await get_feedback(
+        result = await pipeline(
             audio_filename=mp3,
             script_details=ScriptDetails(
                 question=payload.get("question", ""),
@@ -62,7 +64,7 @@ async def score(media: Path, payload: dict) -> tuple[int, int]:
     return result["accuracy"], result["confidence"]
 
 
-async def main(sets: list[str]) -> int:
+async def main(sets: list[str], pipeline=get_feedback) -> int:
     failures = 0
     with tempfile.TemporaryDirectory() as tmp:
         for set_name in sets:
@@ -71,10 +73,12 @@ async def main(sets: list[str]) -> int:
                 if video.suffix not in (".webm", ".mkv") or not payload_path.exists():
                     continue
                 payload = json.loads(payload_path.read_text())
-                base_acc, base_conf = await score(video, payload)
+                base_acc, base_conf = await score(video, payload, pipeline)
                 row = [f"{set_name}/{video.name}", f"full {base_acc}/{base_conf}"]
                 for variant in AUDIO_ONLY_VARIANTS:
-                    acc, conf = await score(make_audio_only(video, Path(tmp), variant), payload)
+                    acc, conf = await score(
+                        make_audio_only(video, Path(tmp), variant), payload, pipeline
+                    )
                     ok = (
                         abs(acc - base_acc) <= ACCURACY_TOLERANCE
                         and abs(conf - base_conf) <= CONFIDENCE_TOLERANCE
@@ -88,4 +92,7 @@ async def main(sets: list[str]) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(asyncio.run(main(sys.argv[1:] or ["set_1"])))
+    args = sys.argv[1:]
+    pipeline = get_feedback_legacy if "--legacy" in args else get_feedback
+    sets = [a for a in args if a != "--legacy"] or ["set_1"]
+    sys.exit(asyncio.run(main(sets, pipeline)))
